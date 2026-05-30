@@ -20,7 +20,7 @@ Cohere, and Mistral.
 
 - **Backend**: Python + FastAPI
 - **Frontend**: Vanilla HTML, CSS, JavaScript
-- **AI**: Anthropic Claude API (claude-sonnet-4-20250514)
+- **AI**: OpenRouter API (anthropic/claude-sonnet-4-5)
 - **Data**: Static JSON files (no database)
 - **Deploy**: Render.com
 
@@ -41,7 +41,7 @@ pip install -r requirements.txt
 
 Open `.env` and replace the placeholder:
 
-Get a key at https://console.anthropic.com
+Get a key at https://openrouter.ai/keys
 
 
 **4. Run locally**
@@ -80,7 +80,7 @@ purchasing-engine/
 4. Set the following:
    - **Build command**: `pip install -r requirements.txt`
    - **Start command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-5. Under **Environment Variables**, add `ANTHROPIC_API_KEY` with your key
+5. Under **Environment Variables**, add `OPENROUTER_API_KEY` with your key
 6. Click **Deploy** — live in ~3 minutes
 
 ## Team
