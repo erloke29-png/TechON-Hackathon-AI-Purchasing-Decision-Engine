@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Decisio – {% block title %}{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #1C1C1E; color: #FFFFFF; }
+    .surface { background-color: #2C2C2E; }
+    .border-subtle { border-color: #3A3A3C; }
+    .text-muted { color: #98989F; }
+    .accent { background-color: #4F6EF7; }
+  </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+  <!-- Navbar -->
+  <nav style="border-bottom: 1px solid #3A3A3C; background-color: #2C2C2E;" class="px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg accent"></div>
+      <span class="font-semibold text-white text-lg">Decisio</span>
+    </div>
+    <div class="flex items-center gap-8">
+      <a href="/" class="text-sm text-muted hover:text-white transition-colors">Home</a>
+      <a href="/dashboard" class="text-sm text-muted hover:text-white transition-colors">Dashboard</a>
+      <a href="/about" class="text-sm text-muted hover:text-white transition-colors">About</a>
+    </div>
+  </nav>
+
+  <!-- Page Content -->
+  {% block content %}{% endblock %}
+
+  {% block scripts %}{% endblock %}
+
+</body>
+</html>
