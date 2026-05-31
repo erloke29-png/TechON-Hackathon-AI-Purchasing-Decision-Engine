@@ -207,7 +207,7 @@
       <h1 style="font-size:26px;font-weight:700;color:#fff;line-height:1.2;margin-top:4px">Your vendor recommendation</h1>
       <div style="font-size:13px;color:#98989F">
         <strong style="color:#fff">${profile.role}</strong> &nbsp;&middot;&nbsp;
-        Team of <strong style="color:#fff">${profile.team_size}</strong> &nbsp;&middot;&nbsp;
+        ${profile.team_size ? `Team of <strong style="color:#fff">${profile.team_size}</strong> &nbsp;&middot;&nbsp;` : ""}
         Budget <strong style="color:#fff">${fmtUSD(profile.budget)}/mo</strong> &nbsp;&middot;&nbsp;
         <strong style="color:#fff">${profile.growth_rate}%</strong> monthly growth &nbsp;&middot;&nbsp;
         Priority: <strong style="color:#fff">${profile.priority}</strong>
