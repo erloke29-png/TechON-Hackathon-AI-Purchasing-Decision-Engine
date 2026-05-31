@@ -5,26 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Decisio – {% block title %}{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { background-color: #1C1C1E; color: #FFFFFF; }
-    .surface { background-color: #2C2C2E; }
-    .border-subtle { border-color: #3A3A3C; }
-    .text-muted { color: #98989F; }
-    .accent { background-color: #4F6EF7; }
-  </style>
+  body { background-color: #080B12; color: #FFFFFF; font-family: 'Sora', system-ui, sans-serif; }
+  .surface { background-color: #131B2E; }
+  .border-subtle { border-color: #1E2D45; }
+  .text-muted { color: #98989F; }
+  .accent { background-color: #3B82F6; }
+</style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
   <!-- Navbar -->
-  <nav style="border-bottom: 1px solid #3A3A3C; background-color: #2C2C2E;" class="px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
+  <nav style="border-bottom: 1px solid #1E2D45; background-color: #0E1420;" class="px-6 py-4 flex items-center justify-between">    <div class="flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg accent"></div>
-      <span class="font-semibold text-white text-lg">Decisio</span>
+      <span class="font-bold text-white text-3xl">Decisio</span>
     </div>
-    <div class="flex items-center gap-8">
-      <a href="/" class="text-sm text-muted hover:text-white transition-colors">Home</a>
-      <a href="/dashboard" class="text-sm text-muted hover:text-white transition-colors">Dashboard</a>
-      <a href="/about" class="text-sm text-muted hover:text-white transition-colors">About</a>
+    <div style="position:absolute;left:50%;transform:translateX(-50%)" class="flex items-center gap-16">
+      <a href="/" class="text-base text-muted hover:text-white transition-colors">Home</a>
+      <a href="/dashboard" class="text-base text-muted hover:text-white transition-colors">Dashboard</a>
     </div>
   </nav>
 
