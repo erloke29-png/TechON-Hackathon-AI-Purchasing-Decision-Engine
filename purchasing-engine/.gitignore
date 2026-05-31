@@ -1,2 +1,6 @@
 .env
 data/sessions/
+venv/
+purchasing-engine/venv/
+*.pyc
+__pycache__/
