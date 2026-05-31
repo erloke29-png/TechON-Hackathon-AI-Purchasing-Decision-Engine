@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block title %}Chat{% endblock %}
+
+{% block content %}
+  <!-- Screen 1: Landing -->
+  <div id="landing" class="flex-1 flex flex-col items-center justify-center px-4">
+    <h1 class="text-4xl font-semibold text-white mb-3 text-center">What are you looking to buy?</h1>
+    <p class="text-sm mb-10 text-center" style="color: #98989F;">Tell us what you need and we'll find the best vendors for you.</p>
+
+    <div style="max-width: 600px; background-color: #2C2C2E; border: 1px solid #3A3A3C;" class="w-full flex gap-3 items-center rounded-2xl px-4 py-3">
+      <input
+        id="landing-input"
+        type="text"
+        placeholder="Describe what you need..."
+        style="background: transparent; color: #FFFFFF;"
+        class="flex-1 text-sm focus:outline-none"
+      />
+      <button
+        id="landing-send"
+        style="background-color: #4F6EF7;"
+        class="hover:opacity-90 text-white rounded-xl px-4 py-2 text-sm font-medium transition-opacity flex-shrink-0"
+      >
+        →
+      </button>
+    </div>
+  </div>
+
+  <!-- Screen 2: Chat (hidden initially) -->
+  <div id="chat" class="hidden flex-col h-screen">
+
+    <!-- Messages -->
+    <main id="messages" style="max-width: 600px;" class="flex-1 overflow-y-auto px-4 py-6 space-y-4 w-full mx-auto">
+
+      <!-- Loading bubble (hidden initially) -->
+      <div id="loading-bubble" class="hidden flex gap-3">
+        <div style="background-color: #4F6EF7;" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
+          <span class="text-white text-xs font-bold">AI</span>
+        </div>
+        <div style="background-color: #2C2C2E; border: 1px solid #3A3A3C;" class="rounded-2xl rounded-tl-sm px-4 py-3">
+          <p class="text-white text-sm mb-1">Researching vendors for you...</p>
+          <div class="flex gap-1 mt-2">
+            <div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style="animation-delay: 0ms"></div>
+            <div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style="animation-delay: 150ms"></div>
+            <div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style="animation-delay: 300ms"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Input -->
+    <footer style="border-top: 1px solid #3A3A3C;" class="px-4 py-4">
+      <div style="max-width: 600px;" class="mx-auto flex gap-3 items-end">
+        <textarea
+          id="input"
+          rows="1"
+          placeholder="Type your message..."
+          style="background-color: #2C2C2E; border: 1px solid #3A3A3C; color: #FFFFFF;"
+          class="flex-1 resize-none rounded-2xl px-4 py-3 text-sm focus:outline-none leading-relaxed"
+        ></textarea>
+        <button
+          id="send"
+          style="background-color: #4F6EF7;"
+          class="hover:opacity-90 text-white rounded-2xl px-5 py-3 text-sm font-medium transition-opacity flex-shrink-0"
+        >
+          →
+        </button>
+      </div>
+    </footer>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/chat.js"></script>
+{% endblock %}
