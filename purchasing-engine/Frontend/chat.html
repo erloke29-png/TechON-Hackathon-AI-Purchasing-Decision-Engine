@@ -3,73 +3,147 @@
 {% block title %}Chat{% endblock %}
 
 {% block content %}
-  <!-- Screen 1: Landing -->
-  <div id="landing" class="flex-1 flex flex-col items-center justify-center px-4">
-    <h1 class="text-4xl font-semibold text-white mb-3 text-center">What are you looking to buy?</h1>
-    <p class="text-sm mb-10 text-center" style="color: #98989F;">Tell us what you need and we'll find the best vendors for you.</p>
+<div style="display:flex;flex:1;overflow:hidden">
 
-    <div style="max-width: 600px; background-color: #2C2C2E; border: 1px solid #3A3A3C;" class="w-full flex gap-3 items-center rounded-2xl px-4 py-3">
-      <input
-        id="landing-input"
-        type="text"
-        placeholder="Describe what you need..."
-        style="background: transparent; color: #FFFFFF;"
-        class="flex-1 text-sm focus:outline-none"
-      />
-      <button
-        id="landing-send"
-        style="background-color: #4F6EF7;"
-        class="hover:opacity-90 text-white rounded-xl px-4 py-2 text-sm font-medium transition-opacity flex-shrink-0"
-      >
-        →
-      </button>
-    </div>
-  </div>
+  <div style="display:flex;flex:1;overflow:hidden">
 
-  <!-- Screen 2: Chat (hidden initially) -->
-  <div id="chat" class="hidden flex-col h-screen">
+  <!-- Main Chat Area -->
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
 
-    <!-- Messages -->
-    <main id="messages" style="max-width: 600px;" class="flex-1 overflow-y-auto px-4 py-6 space-y-4 w-full mx-auto">
+    <!-- Screen 1: Landing -->
+    <div id="landing" class="flex-1 flex flex-col items-center justify-center px-4">
+      <h1 class="text-4xl font-semibold text-white mb-3 text-center">What are you looking to buy?</h1>
+      <p class="text-sm mb-10 text-center" style="color: #98989F;">Tell us what you need and we'll find the best vendors for you.</p>
 
-      <!-- Loading bubble (hidden initially) -->
-      <div id="loading-bubble" class="hidden flex gap-3">
-        <div style="background-color: #4F6EF7;" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
-          <span class="text-white text-xs font-bold">AI</span>
-        </div>
-        <div style="background-color: #2C2C2E; border: 1px solid #3A3A3C; min-width: 280px;" class="rounded-2xl rounded-tl-sm px-4 py-3">
-          <p class="text-white text-sm mb-3" id="loading-text">Researching vendors for you...</p>
-          <div style="background-color: #3A3A3C; border-radius: 999px; height: 6px; overflow: hidden;">
-            <div id="loading-bar" style="height: 100%; width: 0%; background-color: #4F6EF7; border-radius: 999px; transition: width 0.4s ease;"></div>
-          </div>
-          <p style="color: #98989F;" class="text-xs mt-2" id="loading-pct">0%</p>
-        </div>
-      </div>
-
-    </main>
-
-    <!-- Input -->
-    <footer style="border-top: 1px solid #3A3A3C;" class="px-4 py-4">
-      <div style="max-width: 600px;" class="mx-auto flex gap-3 items-end">
-        <textarea
-          id="input"
-          rows="1"
-          placeholder="Type your message..."
-          style="background-color: #2C2C2E; border: 1px solid #3A3A3C; color: #FFFFFF;"
-          class="flex-1 resize-none rounded-2xl px-4 py-3 text-sm focus:outline-none leading-relaxed"
-        ></textarea>
+      <div style="max-width: 600px; background-color: #2C2C2E; border: 1px solid #3A3A3C;" class="w-full flex gap-3 items-center rounded-2xl px-4 py-3">
+        <input
+          id="landing-input"
+          type="text"
+          placeholder="Describe what you need..."
+          style="background: transparent; color: #FFFFFF;"
+          class="flex-1 text-sm focus:outline-none"
+        />
         <button
-          id="send"
+          id="landing-send"
           style="background-color: #4F6EF7;"
-          class="hover:opacity-90 text-white rounded-2xl px-5 py-3 text-sm font-medium transition-opacity flex-shrink-0"
+          class="hover:opacity-90 text-white rounded-xl px-4 py-2 text-sm font-medium transition-opacity flex-shrink-0"
         >
           →
         </button>
       </div>
-    </footer>
+    </div>
+
+    <!-- Screen 2: Chat (hidden initially) -->
+    <div id="chat" class="hidden flex-col" style="height:calc(100vh - 57px)">
+
+      <!-- Messages -->
+      <main id="messages" style="max-width: 600px;" class="flex-1 overflow-y-auto px-4 py-6 space-y-4 w-full mx-auto">
+
+        <!-- Loading bubble (hidden initially) -->
+        <div id="loading-bubble" class="hidden flex gap-3">
+          <div style="background-color: #4F6EF7;" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
+            <span class="text-white text-xs font-bold">AI</span>
+          </div>
+          <div style="background-color: #2C2C2E; border: 1px solid #3A3A3C; min-width: 280px;" class="rounded-2xl rounded-tl-sm px-4 py-3">
+            <p class="text-white text-sm mb-3" id="loading-text">Researching vendors for you...</p>
+            <div style="background-color: #3A3A3C; border-radius: 999px; height: 6px; overflow: hidden;">
+              <div id="loading-bar" style="height: 100%; width: 0%; background-color: #4F6EF7; border-radius: 999px; transition: width 0.4s ease;"></div>
+            </div>
+            <p style="color: #98989F;" class="text-xs mt-2" id="loading-pct">0%</p>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Input -->
+      <footer style="border-top: 1px solid #3A3A3C;" class="px-4 py-4">
+        <div style="max-width: 600px;" class="mx-auto flex gap-3 items-end">
+          <textarea
+            id="input"
+            rows="1"
+            placeholder="Type your message..."
+            style="background-color: #2C2C2E; border: 1px solid #3A3A3C; color: #FFFFFF;"
+            class="flex-1 resize-none rounded-2xl px-4 py-3 text-sm focus:outline-none leading-relaxed"
+          ></textarea>
+          <button
+            id="send"
+            style="background-color: #4F6EF7;"
+            class="hover:opacity-90 text-white rounded-2xl px-5 py-3 text-sm font-medium transition-opacity flex-shrink-0"
+          >
+            →
+          </button>
+        </div>
+      </footer>
+    </div>
+
   </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
   <script src="/Frontend/chat.js"></script>
+  <script>
+    async function loadHistory() {
+      try {
+        const response = await fetch('/api/history');
+        const sessions = await response.json();
+        const list = document.getElementById('history-list');
+
+        if (sessions.length === 0) {
+          list.innerHTML = '<div style="color:#98989F;font-size:12px;padding:8px">No chats yet.</div>';
+          return;
+        }
+
+        list.innerHTML = sessions.map(s => `
+          <div onclick="loadChatHistory('${s.session_id}')" style="display:block;padding:10px 12px;border-radius:8px;text-decoration:none;margin-bottom:4px;cursor:pointer;transition:background .15s" 
+             onmouseover="this.style.background='#2C2C2E'" 
+             onmouseout="this.style.background='transparent'">
+            <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.category}</div>
+            <div style="font-size:11px;color:#98989F;margin-top:2px">→ ${s.winner}</div>
+            <div style="font-size:10px;color:#98989F;margin-top:2px">${new Date(s.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}</div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load history:', e);
+      }
+    }
+
+    loadHistory();
+    async function loadChatHistory(sessionId) {
+  try {
+    const response = await fetch(`/api/session/${sessionId}`);
+    const session = await response.json();
+    const history = session.chat_history || [];
+
+    switchToChat();
+
+    messagesEl.innerHTML = '';
+
+    if (history.length === 0) {
+      addMessage('assistant', 'No chat history saved for this session.');
+      return;
+    }
+
+    history.forEach(msg => {
+      if (msg.role === 'user') {
+        addMessage('user', msg.content);
+      } else if (msg.role === 'assistant') {
+        const clean = msg.content
+          .replace(/INTERVIEW_COMPLETE[\s\S]*/, '')
+          .trim();
+        if (clean) addMessage('assistant', clean);
+      }
+    });
+
+    const viewBtn = document.createElement('div');
+    viewBtn.style = 'text-align:center;padding:16px';
+    viewBtn.innerHTML = `<a href="/dashboard?session_id=${sessionId}" style="background-color:#4F6EF7;color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;text-decoration:none;">View full dashboard →</a>`;
+    messagesEl.appendChild(viewBtn);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+  } catch (e) {
+    console.error('Failed to load chat history:', e);
+  }
+}
+  </script>
 {% endblock %}

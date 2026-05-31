@@ -30,6 +30,7 @@ import json
 import logging
 import os
 import re
+from typing import Optional, List, Dict
 
 from openai import AsyncOpenAI
 
@@ -105,8 +106,8 @@ Return ONLY a valid JSON object. No preamble, no explanation, no markdown fences
 
 async def build_queries(
     decision_profile: dict,
-    vendors: list[str],
-) -> dict[str, list[str]]:
+    vendors: List[str],
+) -> Dict[str, List[str]]:
     """
     Calls Claude once to generate 3 negative-biased Tavily search queries
     per vendor, tailored to the buyer's decision profile.
@@ -250,12 +251,12 @@ def _extract_context(profile: dict) -> dict:
 
 
 def _per_vendor_slot3(
-    vendors: list[str],
-    preferred_vendor: str | None,
-    current_stack: list[str],
+    vendors: List[str],
+    preferred_vendor: Optional[str],
+    current_stack: List[str],
     top_concern: str,
     category: str,
-) -> dict[str, dict[str, str]]:
+) -> Dict[str, Dict[str, str]]:
     """
     Returns {vendor: {"instruction": str, "fallback_q": str}} for every vendor.
 
@@ -301,10 +302,10 @@ def _per_vendor_slot3(
 
 def _validate(
     result: dict,
-    vendors: list[str],
+    vendors: List[str],
     context: dict,
     slot3: dict,
-) -> dict[str, list[str]]:
+) -> Dict[str, List[str]]:
     """
     Ensure every vendor has exactly 3 distinct, sanitized, year-stamped queries.
 
@@ -395,7 +396,7 @@ def _ensure_year(query: str) -> str:
     return query
 
 
-def _fallback_queries(vendor: str, context: dict, slot3: dict) -> list[str]:
+def _fallback_queries(vendor: str, context: dict, slot3: dict) -> List[str]:
     """
     Slot-3-aware fallback queries used when Claude fails on a specific vendor.
 

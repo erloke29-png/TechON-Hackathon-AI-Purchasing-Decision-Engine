@@ -26,21 +26,27 @@ templates = Jinja2Templates(directory="Frontend")
 with open("prompts/decisio.txt", "r", encoding="utf-8") as f:
     SYSTEM_PROMPT = f.read()
 
-app.mount("/static", StaticFiles(directory="Frontend"), name="Frontend")
+app.mount("/Frontend", StaticFiles(directory="Frontend"), name="Frontend")
 
 def adapt_result_to_session(result: dict, profile: dict) -> dict:
     vendors = result.get("vendors", [])
     winner_name = result.get("recommended_vendor", "")
-    regret = result.get("regret_score", {})
+    regret = result.get("regret_analysis", {})
+    flip_scenarios = result.get("flip_scenarios", [])
+    slider_config = result.get("slider_config", [])
 
     adapted_vendors = []
     for v in vendors:
         ds = v.get("dimension_scores", {})
-        lock_level = v.get("lock_in_danger", "medium")
+        lock = v.get("lock_in", {})
+        lock_level = lock.get("level", "medium")
+        sentiment = v.get("sentiment", {})
+        levers = v.get("negotiation_levers", [])
+
         adapted_vendors.append({
             "id": v.get("name", "").lower().replace(" ", "_"),
             "name": v.get("name", ""),
-            "tagline": v.get("sentiment_summary", ""),
+            "tagline": sentiment.get("representative_quote", ""),
             "pricing": {
                 "model": "usage-based",
                 "monthly_estimate_usd": 0,
@@ -56,25 +62,37 @@ def adapt_result_to_session(result: dict, profile: dict) -> dict:
                 "growth":          ds.get("reliability", 0),
                 "growth_note":     ""
             },
+            "dimension_scores": ds,
             "overall_score": v.get("overall_score", 0),
+            "strengths": v.get("strengths", []),
+            "red_flags": v.get("red_flags", []),
+            "first_90_days": v.get("first_90_days", ""),
             "regret": {
                 "score":    regret.get("score", 0),
-                "label":    "Moderate risk",
+                "label":    regret.get("label", "Moderate risk"),
                 "based_on": "Tavily search results",
-                "reasons":  v.get("red_flags", [])
+                "reasons":  regret.get("reasons", [])
             },
             "lockin": {
                 "level":       lock_level,
-                "score":       {"low": 25, "medium": 55, "high": 85}.get(lock_level, 55),
-                "explanation": " ".join(v.get("lock_in_reasons", []))
+                "score":       lock.get("score", {"low": 25, "medium": 55, "high": 85}.get(lock_level, 55)),
+                "explanation": lock.get("exit_effort", ""),
+                "reasons":     lock.get("reasons", [])
             },
             "sentiment": {
-                "positive_pct":         70,
-                "representative_quote": v.get("sentiment_summary", ""),
-                "negative_pattern":     v.get("red_flags", [""])[0] if v.get("red_flags") else ""
+                "positive_pct":         sentiment.get("positive_pct", 0),
+                "label":                sentiment.get("label", ""),
+                "representative_quote": sentiment.get("representative_quote", ""),
+                "negative_pattern":     sentiment.get("negative_pattern", ""),
+                "flagged_concern":      sentiment.get("flagged_concern", "")
             },
             "negotiation_levers": [
-                {"tactic": lev, "detail": ""} for lev in v.get("negotiation_levers", [])
+                {
+                    "tactic":       lev.get("tactic", ""),
+                    "detail":       lev.get("ask", ""),
+                    "leverage":     lev.get("leverage", ""),
+                    "how_to_frame": lev.get("how_to_frame", "")
+                } for lev in levers
             ],
             "why_not": v.get("why_not")
         })
@@ -98,11 +116,21 @@ def adapt_result_to_session(result: dict, profile: dict) -> dict:
         },
         "recommendation": {
             "winner":         winner_name,
-            "confidence":     "moderate",
+            "confidence":     result.get("confidence", "moderate"),
             "summary":        result.get("summary", ""),
             "expiry_reason":  "",
-            "flip_scenarios": []
+            "flip_scenarios": [
+                {
+                    "condition":   s.get("condition", ""),
+                    "outcome":     s.get("because", ""),
+                    "then_vendor": s.get("then_vendor", "")
+                } for s in flip_scenarios
+            ]
         },
+        "regret_analysis": regret,
+        "slider_config": slider_config,
+        "assumption_log": result.get("assumption_log", []),
+        "data_gaps": result.get("data_gaps", []),
         "vendors": adapted_vendors
     }
 
@@ -178,3 +206,36 @@ def get_session(session_id: str):
         data = json.load(f)
 
     return JSONResponse(data)
+
+@app.get("/api/history")
+def get_history():
+    sessions_dir = "data/sessions"
+    sessions = []
+    
+    if not os.path.exists(sessions_dir):
+        return JSONResponse([])
+    
+    for filename in os.listdir(sessions_dir):
+        if filename.endswith(".json"):
+            try:
+                with open(f"{sessions_dir}/{filename}", "r") as f:
+                    data = json.load(f)
+                    sessions.append({
+                        "session_id": data.get("session_id", ""),
+                        "created_at": data.get("created_at", ""),
+                        "category": data.get("profile", {}).get("category", "Unknown"),
+                        "winner": data.get("recommendation", {}).get("winner", "Unknown")
+                    })
+            except:
+                continue
+    
+    sessions.sort(key=lambda x: x["created_at"], reverse=True)
+    return JSONResponse(sessions)
+
+@app.delete("/api/session/{session_id}")
+def delete_session(session_id: str):
+    session_path = f"data/sessions/{session_id}.json"
+    if os.path.exists(session_path):
+        os.remove(session_path)
+        return JSONResponse({"deleted": True})
+    return JSONResponse({"error": "Session not found"}, status_code=404)
