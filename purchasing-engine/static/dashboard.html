@@ -1,0 +1,540 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div id="app" class="overflow-y-auto flex-1 px-6 py-8" style="color: #FFFFFF;">
+  <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#98989F">
+    Loading your results...
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .card { background-color: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 20px; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #98989F; margin-bottom: 14px; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; }
+  .badge-green { background: #052e16; color: #4ade80; }
+  .badge-amber { background: #3d2c00; color: #fbbf24; }
+  .badge-red { background: #3b0000; color: #f87171; }
+  .badge-blue { background: #1e3a5f; color: #60a5fa; }
+  .bar-track { height: 6px; background: #3A3A3C; border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .35s ease; }
+  .metric-card { background-color: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 16px 20px; }
+  .vendor-card { background-color: #2C2C2E; border: 2px solid #3A3A3C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .vendor-card.winner { border-color: #4F6EF7; }
+  .score-note { font-size: 11px; color: #98989F; line-height: 1.4; }
+  .why-not-box { background: #2a1a1a; border: 1px solid #7f1d1d; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #fca5a5; line-height: 1.5; margin-top: auto; }
+  .why-not-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #f87171; margin-bottom: 4px; }
+  .flip-item { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid #3A3A3C; }
+  .flip-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .flip-item:first-child { padding-top: 0; }
+  .expiry-bar { background: #2a2000; border: 1px solid #fde68a; border-radius: 12px; padding: 16px 20px; display: flex; align-items: flex-start; gap: 13px; }
+  .lockin-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 2px 7px; border-radius: 10px; }
+  .lockin-tag-low { background: #052e16; color: #4ade80; }
+  .lockin-tag-medium { background: #3d2c00; color: #fbbf24; }
+  .lockin-tag-high { background: #3b0000; color: #f87171; }
+  .sentiment-neg { display: inline-block; font-size: 10px; background: #2a1a1a; color: #f87171; border: 1px solid #7f1d1d; border-radius: 10px; padding: 1px 8px; margin-top: 2px; }
+  .pill { font-size: 10px; font-weight: 600; color: #98989F; background: #3A3A3C; border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
+  input[type=range] { width: 100%; accent-color: #4F6EF7; cursor: pointer; height: 4px; }
+  .rank-bar-track { flex: 1; height: 10px; background: #3A3A3C; border-radius: 5px; overflow: hidden; }
+  .rank-bar-fill { height: 100%; border-radius: 5px; width: 0; transition: width .3s ease, background .3s ease; }
+
+  @media print {
+  nav { display: none !important; }
+  * { color: black !important; background: white !important; border-color: #ccc !important; }
+  .card, .metric-card, .vendor-card, .expiry-bar, .why-not-box { 
+    background: white !important; 
+    border: 1px solid #ccc !important; 
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .vendor-grid { display: block !important; }
+  .vendor-card { margin-bottom: 16px !important; }
+  .two-col { display: block !important; }
+  .two-col > .card { margin-bottom: 16px !important; }
+  button { display: none !important; }
+  input[type=range] { display: none !important; }
+  .bar-fill { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .badge { border: 1px solid #ccc !important; }
+  body { font-size: 12px !important; }
+  #app { padding: 0 !important; }
+}
+</style>
+
+<script>
+let SESSION = null;
+let winner = null;
+
+async function loadSession() {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get('session');
+
+  if (sessionId) {
+    try {
+      const response = await fetch(`/api/session/${sessionId}`);
+      SESSION = await response.json();
+    } catch (e) {
+      console.error('Failed to load session:', e);
+      SESSION = getDemoData();
+    }
+  } else {
+    SESSION = getDemoData();
+  }
+
+  winner = SESSION.vendors.find(v => v.name === SESSION.recommendation.winner);
+  renderDashboard();
+}
+
+function downloadPDF() {
+  const content = document.getElementById('app').innerHTML;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Decisio – Vendor Report</title>
+      <script src="https://cdn.tailwindcss.com"><\/script>
+      <style>
+        body { font-family: system-ui, sans-serif; padding: 24px; font-size: 12px; background: #1C1C1E !important; color: white !important; }
+        * { box-shadow: none !important; }
+        h1 { font-size: 20px !important; color: white !important; }
+        .card, .metric-card, .vendor-card { background: #2C2C2E !important; border: 1px solid #3A3A3C !important; border-radius: 8px; padding: 16px; margin-bottom: 16px; break-inside: avoid; page-break-inside: avoid; }
+        .vendor-grid { display: block !important; }
+        .vendor-card { margin-bottom: 16px !important; }
+        .two-col { display: block !important; }
+        .bar-track { height: 6px; background: #3A3A3C !important; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 3px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        .badge { border: 1px solid #3A3A3C !important; border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 600; }
+        .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #98989F !important; margin-bottom: 10px; }
+        .score-note { font-size: 10px; color: #98989F !important; }
+        .pill { font-size: 10px; background: #3A3A3C !important; color: #98989F !important; border-radius: 10px; padding: 2px 6px; }
+        .why-not-box { background: #2a1a1a !important; border: 1px solid #7f1d1d !important; border-radius: 8px; padding: 10px; color: #fca5a5 !important; }
+        .expiry-bar { background: #2a2000 !important; border: 1px solid #fde68a !important; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .sentiment-neg { background: #2a1a1a !important; border: 1px solid #7f1d1d !important; border-radius: 10px; padding: 1px 8px; font-size: 10px; color: #f87171 !important; }
+        .lockin-tag { border-radius: 10px; padding: 2px 7px; font-size: 10px; font-weight: 700; }
+        .lockin-tag-low { background: #052e16 !important; color: #4ade80 !important; }
+        .lockin-tag-medium { background: #3d2c00 !important; color: #fbbf24 !important; }
+        .lockin-tag-high { background: #3b0000 !important; color: #f87171 !important; }
+        .rank-bar-track { flex: 1; height: 8px; background: #3A3A3C !important; border-radius: 5px; overflow: hidden; }
+        .flip-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #3A3A3C !important; }
+        input[type=range] { display: none !important; }
+        button { display: none !important; }
+        @media print {
+          body { background: #1C1C1E !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      ${content}
+      <script>window.onload = function() { window.print(); }<\/script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+function getDemoData() {
+  return {
+    "session_id": "demo-001",
+    "created_at": "2025-05-30T09:00:00Z",
+    "expires_recommendation_at": "2025-08-30T09:00:00Z",
+    "profile": {
+      "category": "CRM software",
+      "role": "VP of Engineering",
+      "team_size": 8,
+      "budget_monthly_usd": 2000,
+      "growth_rate_monthly_pct": 20,
+      "contract_preference": "monthly",
+      "priority": "compliance",
+      "usage_estimates": { "seats": 8, "contacts": 25000, "emails_per_month": 10000 },
+      "must_haves": ["SOC 2 Type II certification", "REST API access", "GDPR compliance tools", "SSO support", "Mobile app", "Custom reporting"],
+      "dealbreakers": ["No SOC 2 Type II", "Per-email pricing at scale", "No API on base tier"],
+      "contradictions": [{ "type": "soft", "description": "Monthly contract preference conflicts with best available pricing", "overridden": false }]
+    },
+    "recommendation": {
+      "winner": "HubSpot",
+      "confidence": "moderate",
+      "summary": "HubSpot covers all 6 must-haves, comes in under budget at ~$1,800/month for your current team size, and has the strongest onboarding of the three shortlisted vendors. The key caveat is a sharp pricing jump at 10 seats — at 20% monthly growth you are 3 to 4 months away from that threshold.",
+      "expiry_reason": "HubSpot reprices annually in Q3. Salesforce enterprise pricing changes quarterly. Recommend reviewing before August 2025.",
+      "flip_scenarios": [
+        { "condition": "If your budget were $4,000+/month", "outcome": "Salesforce becomes viable at Series A headcount." },
+        { "condition": "If SOC 2 compliance was not required", "outcome": "Pipedrive jumps to top pick." },
+        { "condition": "If your growth rate slows below 10% per month", "outcome": "HubSpot's regret score falls from 6.2 to roughly 3.8." },
+        { "condition": "If you need deep marketing automation immediately", "outcome": "Salesforce and Pardot worth a closer look despite the budget stretch." }
+      ]
+    },
+    "vendors": [
+      {
+        "id": "hubspot", "name": "HubSpot", "tagline": "Best all-in-one for growing teams",
+        "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 1800, "notes": "Starter tier at ~$225/seat/mo for 8 seats." },
+        "scores": { "budget": 94, "budget_note": "Fits now — jumps at 10 seats", "features": 82, "features_note": "Strong CRM core", "compliance": 90, "compliance_note": "SOC 2 Type II certified", "growth": 58, "growth_note": "Pricing cliff at 10 seats" },
+        "overall_score": 83,
+        "regret": { "score": 6.2, "label": "Moderate risk", "based_on": "340+ verified user reviews", "reasons": ["Pricing jumps ~78% at 10-seat tier", "Add-ons average 1.4× quoted price by month 6", "Data export takes 2–4 weeks", "Support quality drops for non-enterprise tiers"] },
+        "lockin": { "level": "medium", "score": 55, "explanation": "Migration typically takes 4–6 weeks." },
+        "sentiment": { "positive_pct": 78, "representative_quote": "Best onboarding we've had", "negative_pattern": "Pricing surprises after month 3" },
+        "negotiation_levers": [
+          { "tactic": "Ask for annual pre-pay", "detail": "15–20% off for upfront annual commitment." },
+          { "tactic": "Request a 90-day pilot", "detail": "Teams under 10 seats can negotiate a free trial extension." },
+          { "tactic": "Name Pipedrive in the call", "detail": "HubSpot reps will move on price when a competitor is mentioned." },
+          { "tactic": "Time the close to end of quarter", "detail": "Discount authority increases ~10% in final two weeks." }
+        ],
+        "why_not": null
+      },
+      {
+        "id": "salesforce", "name": "Salesforce", "tagline": "Enterprise depth, enterprise cost",
+        "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 4800, "notes": "~$600/seat/mo for 8 seats." },
+        "scores": { "budget": 28, "budget_note": "2.4× over budget", "features": 95, "features_note": "Most complete CRM", "compliance": 98, "compliance_note": "Gold standard compliance", "growth": 88, "growth_note": "Scales to thousands of seats" },
+        "overall_score": 61,
+        "regret": { "score": 4.1, "label": "Low-moderate risk", "based_on": "890+ verified user reviews", "reasons": ["Requires dedicated admin", "Implementation runs over budget", "Customisation creates technical debt"] },
+        "lockin": { "level": "high", "score": 90, "explanation": "Migration typically takes 6–12 months." },
+        "sentiment": { "positive_pct": 71, "representative_quote": "Incredibly powerful once your team knows it", "negative_pattern": "Needs full-time admin" },
+        "negotiation_levers": [
+          { "tactic": "Push for multi-year pricing", "detail": "20–30% discount for 2–3 year contracts." },
+          { "tactic": "Demand free implementation support", "detail": "For deals over $50k ARR, free onboarding hours are available." }
+        ],
+        "why_not": "Starts at $4,800/mo — 2.4× your budget."
+      },
+      {
+        "id": "pipedrive", "name": "Pipedrive", "tagline": "Sales-pipeline focused, lightweight",
+        "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 800, "notes": "~$100/seat/mo for 8 seats." },
+        "scores": { "budget": 88, "budget_note": "Well under budget", "features": 61, "features_note": "Excellent pipeline management", "compliance": 44, "compliance_note": "No SOC 2 Type II", "growth": 52, "growth_note": "Hits limits at 20+ seats" },
+        "overall_score": 59,
+        "regret": { "score": 3.2, "label": "Low risk if compliance fits", "based_on": "520+ verified user reviews", "reasons": ["Outgrows reporting at 20-seat mark", "Limited native integrations"] },
+        "lockin": { "level": "low", "score": 28, "explanation": "Migration effort typically under 2 weeks." },
+        "sentiment": { "positive_pct": 83, "representative_quote": "Simple, fast, does exactly what it says", "negative_pattern": "Reporting hits ceiling at scale" },
+        "negotiation_levers": [
+          { "tactic": "Annual plan discount", "detail": "~17% off on annual billing." }
+        ],
+        "why_not": "No SOC 2 Type II — hard dealbreaker."
+      }
+    ]
+  };
+}
+
+function scoreColor(n) { return n >= 80 ? '#1D9E75' : n >= 60 ? '#EF9F27' : '#D85A30'; }
+function lockinColor(lvl) { return lvl === 'low' ? '#1D9E75' : lvl === 'medium' ? '#EF9F27' : '#D85A30'; }
+function lockinTagClass(lvl) { return 'lockin-tag lockin-tag-' + lvl; }
+function confBadgeClass(conf) { return conf === 'high' ? 'badge-green' : conf === 'moderate' ? 'badge-amber' : 'badge-red'; }
+function fmtDate(iso) { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
+function fmtUSD(n) { return '$' + n.toLocaleString(); }
+
+function scoreBarHTML(label, score, note) {
+  const c = scoreColor(score);
+  return `<div style="display:flex;flex-direction:column;gap:4px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#98989F">${label}</span>
+      <span style="font-size:13px;font-weight:700;color:${c}">${score}</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" style="width:${score}%;background:${c}"></div></div>
+    <div class="score-note">${note}</div>
+  </div>`;
+}
+
+function vendorCardHTML(v) {
+  const s = v.scores;
+  const whyNot = v.why_not ? `<div class="why-not-box"><div class="why-not-lbl">Why not this vendor</div>${v.why_not}</div>` : '';
+  return `<div class="vendor-card" id="card-${v.id}" data-vendor-id="${v.id}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#fff">${v.name}</div>
+        <div style="font-size:12px;color:#98989F;margin-top:3px">${v.tagline}</div>
+      </div>
+      <span class="badge badge-blue top-pick-badge" id="badge-${v.id}" style="display:none">Top pick</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:8px">
+      <span style="font-size:38px;font-weight:800;line-height:1" id="weighted-${v.id}">—</span>
+      <span style="font-size:11px;color:#98989F;text-transform:uppercase;letter-spacing:.06em">weighted score</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="breakdown-${v.id}"></div>
+    <div style="display:flex;flex-direction:column;gap:11px">
+      ${scoreBarHTML('Budget', s.budget, s.budget_note)}
+      ${scoreBarHTML('Features', s.features, s.features_note)}
+      ${scoreBarHTML('Compliance', s.compliance, s.compliance_note)}
+      ${scoreBarHTML('Growth', s.growth, s.growth_note)}
+    </div>
+    ${whyNot}
+  </div>`;
+}
+
+function buildHeader() {
+  const p = SESSION.profile;
+  return `<div style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="background:#1e3a5f;color:#60a5fa;font-size:12px;font-weight:600;padding:3px 11px;border-radius:20px">${p.category}</span>
+      <span style="font-size:12px;color:#98989F">Generated ${fmtDate(SESSION.created_at)}</span>
+    </div>
+    <h1 style="font-size:26px;font-weight:700;color:#fff;line-height:1.2;margin-top:4px">Your vendor recommendation</h1>
+    <div style="font-size:13px;color:#98989F">
+      <strong style="color:#fff">${p.role}</strong> &nbsp;&middot;&nbsp;
+      Team of <strong style="color:#fff">${p.team_size}</strong> &nbsp;&middot;&nbsp;
+      Budget <strong style="color:#fff">${fmtUSD(p.budget_monthly_usd)}/mo</strong> &nbsp;&middot;&nbsp;
+      <strong style="color:#fff">${p.growth_rate_monthly_pct}%</strong> monthly growth &nbsp;&middot;&nbsp;
+      Priority: <strong style="color:#fff">${p.priority}</strong>
+    </div>
+    <div style="margin-top:12px">
+      <button onclick="downloadPDF()" style="background-color:#4F6EF7;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;">
+        ↓ Download as PDF
+      </button>
+    </div>
+  </div>`;
+}
+
+function buildVerdictBar() {
+  const rec = SESSION.recommendation;
+  return `<div class="card">
+    <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:8px">${rec.winner}</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <span class="badge ${confBadgeClass(rec.confidence)}">${rec.confidence} confidence</span>
+      <span class="badge badge-amber">⚠ Moderate regret risk</span>
+    </div>
+    <div style="font-size:14px;line-height:1.7;color:#ccc">${rec.summary}</div>
+  </div>`;
+}
+
+function buildMetricCards() {
+  const w = winner;
+  const mhCount = SESSION.profile.must_haves.length;
+  const lvl = w.lockin.level;
+  const lvlLabel = lvl.charAt(0).toUpperCase() + lvl.slice(1);
+  const lvlColor = lockinColor(lvl);
+  return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+    <div class="metric-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#98989F">Budget fit</div>
+      <div style="font-size:32px;font-weight:800;line-height:1;margin:8px 0 4px;color:#1D9E75">${w.scores.budget}</div>
+      <div style="font-size:11px;color:#98989F">/100 — ${w.name}</div>
+    </div>
+    <div class="metric-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#98989F">Must-haves met</div>
+      <div style="font-size:32px;font-weight:800;line-height:1;margin:8px 0 4px;color:#1D9E75">${mhCount}/${mhCount}</div>
+      <div style="font-size:11px;color:#98989F">All requirements covered</div>
+    </div>
+    <div class="metric-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#98989F">Regret score</div>
+      <div style="font-size:32px;font-weight:800;line-height:1;margin:8px 0 4px;color:#EF9F27">${w.regret.score}</div>
+      <div style="font-size:11px;color:#98989F">${w.regret.label} · /10 scale</div>
+    </div>
+    <div class="metric-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#98989F">Lock-in danger</div>
+      <div style="font-size:26px;font-weight:800;line-height:1;margin:8px 0 4px;color:${lvlColor}">${lvlLabel}</div>
+      <div style="font-size:11px;color:#98989F">Vendor dependency level</div>
+    </div>
+  </div>`;
+}
+
+function buildVendorComparison() {
+  return `<div>
+    <div class="section-title">Vendor comparison</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="vendor-grid">
+      ${SESSION.vendors.map(v => vendorCardHTML(v)).join('')}
+    </div>
+  </div>`;
+}
+
+function buildSliders() {
+  const chartRows = SESSION.vendors.map(v => `
+    <div style="display:flex;align-items:center;gap:12px" id="rankrow-${v.id}">
+      <span style="font-size:13px;font-weight:600;color:#fff;width:92px;flex-shrink:0">${v.name}</span>
+      <div class="rank-bar-track"><div class="rank-bar-fill" id="rankfill-${v.id}"></div></div>
+      <span style="font-size:13px;font-weight:700;width:30px;text-align:right;flex-shrink:0;color:#fff" id="rankscore-${v.id}">0</span>
+    </div>`).join('');
+  return `<div class="card">
+    <div class="section-title">Priority weights — adjust to see how ranking changes</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin:16px 0 20px">
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:13px;font-weight:600;color:#fff">Price sensitivity</span>
+          <span style="font-size:13px;font-weight:700;color:#4F6EF7" id="val-price">50</span>
+        </div>
+        <input type="range" id="slider-price" min="0" max="100" value="50" oninput="updateSliders()">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:13px;font-weight:600;color:#fff">Feature depth</span>
+          <span style="font-size:13px;font-weight:700;color:#4F6EF7" id="val-features">50</span>
+        </div>
+        <input type="range" id="slider-features" min="0" max="100" value="50" oninput="updateSliders()">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:13px;font-weight:600;color:#fff">Compliance</span>
+          <span style="font-size:13px;font-weight:700;color:#4F6EF7" id="val-compliance">50</span>
+        </div>
+        <input type="range" id="slider-compliance" min="0" max="100" value="50" oninput="updateSliders()">
+      </div>
+    </div>
+    <div class="section-title" style="margin-bottom:10px">Weighted ranking</div>
+    <div style="display:flex;flex-direction:column;gap:10px" id="rank-chart">${chartRows}</div>
+  </div>`;
+}
+
+function buildRegretAndLockin() {
+  const w = winner;
+  const reasons = w.regret.reasons.map(r => `<li style="font-size:12px;color:#ccc;padding-left:15px;position:relative;line-height:1.5"><span style="position:absolute;left:0;color:#EF9F27;font-size:14px;line-height:1.3">•</span>${r}</li>`).join('');
+  const lockItems = SESSION.vendors.map(v => `
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px">
+        <span style="font-size:13px;font-weight:600;color:#fff">${v.name}</span>
+        <span class="${lockinTagClass(v.lockin.level)}">${v.lockin.level}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${v.lockin.score}%;background:${lockinColor(v.lockin.level)}"></div></div>
+      <div style="font-size:11px;color:#98989F;line-height:1.5;margin-top:3px">${v.lockin.explanation}</div>
+    </div>`).join('');
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="section-title">Regret analysis — ${w.name}</div>
+      <div style="font-size:54px;font-weight:800;color:#EF9F27;line-height:1">${w.regret.score}</div>
+      <div style="font-size:14px;font-weight:600;color:#fbbf24;margin:4px 0 2px">${w.regret.label}</div>
+      <div style="font-size:11px;color:#98989F;margin-bottom:14px">Based on ${w.regret.based_on}</div>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:9px">${reasons}</ul>
+    </div>
+    <div class="card">
+      <div class="section-title">Lock-in danger</div>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-top:4px">${lockItems}</div>
+    </div>
+  </div>`;
+}
+
+function buildSentimentAndLevers() {
+  const icons = ['💡', '🧪', '🎯', '⏱'];
+  const sentItems = SESSION.vendors.map(v => `
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:600;color:#fff">${v.name}</span>
+        <span style="font-size:13px;font-weight:700;color:#1D9E75">${v.sentiment.positive_pct}% positive</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${v.sentiment.positive_pct}%;background:#1D9E75"></div></div>
+      <div style="font-size:11px;color:#98989F;font-style:italic;line-height:1.4">"${v.sentiment.representative_quote}"</div>
+      <span class="sentiment-neg">${v.sentiment.negative_pattern}</span>
+    </div>`).join('');
+  const levers = winner.negotiation_levers.map((lev, i) => `
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:30px;height:30px;min-width:30px;background:#1e3a5f;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-top:1px">${icons[i % icons.length]}</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#fff">${lev.tactic}</div>
+        <div style="font-size:12px;color:#98989F;line-height:1.55;margin-top:2px">${lev.detail}</div>
+      </div>
+    </div>`).join('');
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="section-title">Customer sentiment</div>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-top:4px">${sentItems}</div>
+    </div>
+    <div class="card">
+      <div class="section-title">Negotiation levers — ${winner.name}</div>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px">${levers}</div>
+    </div>
+  </div>`;
+}
+
+function buildFlipScenarios() {
+  const items = SESSION.recommendation.flip_scenarios.map(s => `
+    <div class="flip-item">
+      <div style="width:28px;height:28px;min-width:28px;background:#1e3a5f;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#4F6EF7;font-weight:700;font-size:16px;margin-top:2px">→</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:4px">${s.condition}</div>
+        <div style="font-size:13px;color:#ccc;line-height:1.6">${s.outcome}</div>
+      </div>
+    </div>`).join('');
+  return `<div class="card">
+    <div class="section-title">What would change this recommendation</div>
+    <div style="display:flex;flex-direction:column;margin-top:4px">${items}</div>
+  </div>`;
+}
+
+function buildExpiryWarning() {
+  const expDate = fmtDate(SESSION.expires_recommendation_at);
+  return `<div class="expiry-bar">
+    <div style="font-size:20px;margin-top:1px">🕐</div>
+    <div>
+      <div style="font-size:13px;color:#fbbf24;line-height:1.6">${SESSION.recommendation.expiry_reason}</div>
+      <div style="font-size:11px;font-weight:700;color:#f59e0b;margin-top:5px;text-transform:uppercase;letter-spacing:.07em">Review by ${expDate}</div>
+    </div>
+  </div>`;
+}
+
+function renderDashboard() {
+  document.getElementById('app').innerHTML = `
+    <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:24px">
+      ${buildHeader()}
+      ${buildVerdictBar()}
+      ${buildMetricCards()}
+      ${buildVendorComparison()}
+      ${buildSliders()}
+      ${buildRegretAndLockin()}
+      ${buildSentimentAndLevers()}
+      ${buildFlipScenarios()}
+      ${buildExpiryWarning()}
+    </div>`;
+  updateSliders();
+}
+
+function reorderCards(orderedIds) {
+  const grid = document.getElementById('vendor-grid');
+  const cards = orderedIds.map(id => document.getElementById('card-' + id));
+  const first = cards.map(c => c.getBoundingClientRect());
+  cards.forEach(c => grid.appendChild(c));
+  cards.forEach((c, i) => {
+    const last = c.getBoundingClientRect();
+    const dx = first[i].left - last.left;
+    const dy = first[i].top - last.top;
+    c.style.transition = 'none';
+    c.style.transform = `translate(${dx}px,${dy}px)`;
+  });
+  requestAnimationFrame(() => {
+    cards.forEach(c => {
+      c.style.transition = 'transform 0.3s ease';
+      c.style.transform = '';
+    });
+  });
+}
+
+function updateSliders() {
+  const p = parseInt(document.getElementById('slider-price').value, 10);
+  const f = parseInt(document.getElementById('slider-features').value, 10);
+  const c = parseInt(document.getElementById('slider-compliance').value, 10);
+  document.getElementById('val-price').textContent = p;
+  document.getElementById('val-features').textContent = f;
+  document.getElementById('val-compliance').textContent = c;
+  const total = p + f + c;
+  const results = SESSION.vendors.map(v => {
+    let priceC = 0, featC = 0, compC = 0, weighted = 0;
+    if (total > 0) {
+      priceC = (v.scores.budget * p) / total;
+      featC = (v.scores.features * f) / total;
+      compC = (v.scores.compliance * c) / total;
+      weighted = priceC + featC + compC;
+    }
+    return { v, priceC, featC, compC, weighted };
+  });
+  results.forEach(r => {
+    const el = document.getElementById('weighted-' + r.v.id);
+    el.textContent = Math.round(r.weighted);
+    el.style.color = scoreColor(r.weighted);
+    document.getElementById('breakdown-' + r.v.id).innerHTML =
+      `<span class="pill">Price ${Math.round(r.priceC)}pts</span>` +
+      `<span class="pill">Features ${Math.round(r.featC)}pts</span>` +
+      `<span class="pill">Compliance ${Math.round(r.compC)}pts</span>`;
+  });
+  const ranked = [...results].sort((a, b) => b.weighted - a.weighted);
+  ranked.forEach((r, i) => {
+    const fill = document.getElementById('rankfill-' + r.v.id);
+    fill.style.width = r.weighted + '%';
+    fill.style.background = scoreColor(r.weighted);
+    document.getElementById('rankscore-' + r.v.id).textContent = Math.round(r.weighted);
+    document.getElementById('rankrow-' + r.v.id).style.order = i;
+  });
+  results.forEach(r => {
+    document.getElementById('card-' + r.v.id).classList.remove('winner');
+    document.getElementById('badge-' + r.v.id).style.display = 'none';
+  });
+  const topId = ranked[0].v.id;
+  document.getElementById('card-' + topId).classList.add('winner');
+  document.getElementById('badge-' + topId).style.display = '';
+  reorderCards(ranked.map(r => r.v.id));
+}
+
+loadSession();
+</script>
+{% endblock %}

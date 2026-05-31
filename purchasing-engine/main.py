@@ -4,7 +4,6 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from openai import OpenAI
 from dotenv import load_dotenv
-from search import search_vendors
 import os
 import json
 import uuid
@@ -39,7 +38,7 @@ async def chat(request: dict):
 
     def stream():
         response = client.chat.completions.create(
-            model="perplexity/llama-3.1-sonar-large-128k-online",
+            model=os.getenv("MODEL"),
             messages=messages_with_system,
             stream=True
         )
@@ -61,13 +60,16 @@ async def save_session(request: Request):
     session_path = f"data/sessions/{session_id}.json"
     
     os.makedirs("data/sessions", exist_ok=True)
-    
-    from search import search_vendors
-    vendors = search_vendors(data.get("category", ""), data)
-    data["vendors"] = vendors
-    
+
+    from search import run_searches
+    from report_agent import generate_session
+
+    tavily_json = run_searches(data)
+    session = generate_session(tavily_json)
+    session["session_id"] = session_id
+
     with open(session_path, "w") as f:
-        json.dump(data, f)
+        json.dump(session, f)
     
     return JSONResponse({"session_id": session_id})
 

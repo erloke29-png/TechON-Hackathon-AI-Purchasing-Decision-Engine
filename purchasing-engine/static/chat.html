@@ -37,13 +37,12 @@
         <div style="background-color: #4F6EF7;" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
           <span class="text-white text-xs font-bold">AI</span>
         </div>
-        <div style="background-color: #2C2C2E; border: 1px solid #3A3A3C;" class="rounded-2xl rounded-tl-sm px-4 py-3">
-          <p class="text-white text-sm mb-1">Researching vendors for you...</p>
-          <div class="flex gap-1 mt-2">
-            <div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style="animation-delay: 0ms"></div>
-            <div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style="animation-delay: 150ms"></div>
-            <div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style="animation-delay: 300ms"></div>
+        <div style="background-color: #2C2C2E; border: 1px solid #3A3A3C; min-width: 280px;" class="rounded-2xl rounded-tl-sm px-4 py-3">
+          <p class="text-white text-sm mb-3" id="loading-text">Researching vendors for you...</p>
+          <div style="background-color: #3A3A3C; border-radius: 999px; height: 6px; overflow: hidden;">
+            <div id="loading-bar" style="height: 100%; width: 0%; background-color: #4F6EF7; border-radius: 999px; transition: width 0.4s ease;"></div>
           </div>
+          <p style="color: #98989F;" class="text-xs mt-2" id="loading-pct">0%</p>
         </div>
       </div>
 

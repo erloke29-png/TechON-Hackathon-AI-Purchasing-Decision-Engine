@@ -38,6 +38,33 @@ function addMessage(role, text) {
   return wrapper;
 }
 
+function startLoadingBar() {
+  const bar = document.getElementById('loading-bar');
+  const pct = document.getElementById('loading-pct');
+  const text = document.getElementById('loading-text');
+
+  const steps = [
+    { width: 15, label: 'Analyzing your requirements...' },
+    { width: 30, label: 'Finding top vendors...' },
+    { width: 50, label: 'Researching pricing and reviews...' },
+    { width: 70, label: 'Checking for red flags...' },
+    { width: 85, label: 'Building your report...' },
+    { width: 95, label: 'Almost done...' }
+  ];
+
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i < steps.length) {
+      bar.style.width = steps[i].width + '%';
+      pct.textContent = steps[i].width + '%';
+      text.textContent = steps[i].label;
+      i++;
+    } else {
+      clearInterval(interval);
+    }
+  }, 3000);
+}
+
 async function sendMessage(text) {
   if (!text.trim()) return;
 
@@ -80,6 +107,7 @@ async function sendMessage(text) {
     messagesEl.appendChild(loadingBubble);
     loadingBubble.classList.remove('hidden');
     messagesEl.scrollTop = messagesEl.scrollHeight;
+    startLoadingBar();
 
     const match = fullText.match(/---BEGIN_PROFILE---([\s\S]*?)---END_PROFILE---/);
     if (match) {
