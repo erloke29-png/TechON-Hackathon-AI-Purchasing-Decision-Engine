@@ -2,3 +2,6 @@ fastapi
 uvicorn
 openai
 python-dotenv
+tavily-python
+jinja2
+python-multipart

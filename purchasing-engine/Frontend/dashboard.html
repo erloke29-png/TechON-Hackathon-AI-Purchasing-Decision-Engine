@@ -1,0 +1,698 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div style="display:flex;flex:1;overflow:hidden">
+
+  <!-- Left Sidebar -->
+  <div id="sidebar" style="width:260px;min-width:260px;background-color:#1C1C1E;border-right:1px solid #3A3A3C;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:12px 16px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#98989F;margin-top:8px">
+      Recents
+    </div>
+    <div id="history-list" style="flex:1;overflow-y:auto;padding:0 8px 16px">
+      <div style="color:#98989F;font-size:12px;padding:8px">No results yet.</div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Area -->
+  <div id="app" class="overflow-y-auto flex-1 px-6 py-8" style="color: #FFFFFF;">
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .card { background-color: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 20px; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #98989F; margin-bottom: 14px; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; }
+  .badge-green { background: #052e16; color: #4ade80; }
+  .badge-amber { background: #3d2c00; color: #fbbf24; }
+  .badge-red { background: #3b0000; color: #f87171; }
+  .badge-blue { background: #1e3a5f; color: #60a5fa; }
+  .bar-track { height: 6px; background: #3A3A3C; border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .35s ease; }
+  .metric-card { background-color: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 12px; padding: 16px 20px; }
+  .vendor-card { background-color: #2C2C2E; border: 2px solid #3A3A3C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .vendor-card.winner { border-color: #4F6EF7; }
+  .score-note { font-size: 11px; color: #98989F; line-height: 1.4; }
+  .why-not-box { background: #2a1a1a; border: 1px solid #7f1d1d; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #fca5a5; line-height: 1.5; margin-top: auto; }
+  .why-not-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #f87171; margin-bottom: 4px; }
+  .flip-item { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid #3A3A3C; }
+  .flip-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .flip-item:first-child { padding-top: 0; }
+  .expiry-bar { background: #2a2000; border: 1px solid #fde68a; border-radius: 12px; padding: 16px 20px; display: flex; align-items: flex-start; gap: 13px; }
+  .lockin-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 2px 7px; border-radius: 10px; }
+  .lockin-tag-low { background: #052e16; color: #4ade80; }
+  .lockin-tag-medium { background: #3d2c00; color: #fbbf24; }
+  .lockin-tag-high { background: #3b0000; color: #f87171; }
+  .sentiment-neg { display: inline-block; font-size: 10px; background: #2a1a1a; color: #f87171; border: 1px solid #7f1d1d; border-radius: 10px; padding: 1px 8px; margin-top: 2px; }
+  .pill { font-size: 10px; font-weight: 600; color: #98989F; background: #3A3A3C; border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
+  input[type=range] { width: 100%; accent-color: #4F6EF7; cursor: pointer; height: 4px; }
+  .rank-bar-track { flex: 1; height: 10px; background: #3A3A3C; border-radius: 5px; overflow: hidden; }
+  .rank-bar-fill { height: 100%; border-radius: 5px; width: 0; transition: width .3s ease, background .3s ease; }
+  @media print {
+    nav { display: none !important; }
+    * { color: black !important; background: white !important; border-color: #ccc !important; }
+    [style*="color:#98989F"] { color: #333 !important; }
+    [style*="color:#ccc"] { color: #333 !important; }
+    [style*="color:#fbbf24"] { color: #333 !important; }
+    [style*="color:#4ade80"] { color: #333 !important; }
+    [style*="color:#f87171"] { color: #333 !important; }
+    [style*="color:#60a5fa"] { color: #333 !important; }
+    .card, .metric-card, .vendor-card, .expiry-bar, .why-not-box {
+      background: white !important;
+      border: 1px solid #ccc !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      margin-bottom: 16px !important;
+    }
+    [id^="vendor-grid"] { display: block !important; }
+    .vendor-card { display: block !important; width: 100% !important; margin-bottom: 16px !important; }
+    [style*="grid-template-columns"] { display: block !important; }
+    [style*="grid-template-columns"] > * { width: 100% !important; margin-bottom: 16px !important; }
+    button { display: none !important; }
+    input[type=range] { display: none !important; }
+    [id^="val-"] { display: none !important; }
+    .card:has(input[type=range]) { display: none !important; }
+    .bar-fill { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .badge { border: 1px solid #ccc !important; }
+    body { font-size: 12px !important; }
+    #app { padding: 0 !important; }
+  }
+</style>
+
+<script>
+async function loadSession() {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get('session_id') || params.get('session');
+
+  let SESSION;
+  if (sessionId) {
+    try {
+      const response = await fetch(`/api/session/${sessionId}`);
+      if (!response.ok) throw new Error('Session not found');
+      SESSION = await response.json();
+    } catch (e) {
+      console.error('Failed to load session:', e);
+      SESSION = getDemoData();
+    }
+  } else {
+    document.getElementById('app').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;text-align:center">
+        <div style="font-size:48px">📋</div>
+        <h2 style="font-size:22px;font-weight:700;color:#fff">No results yet</h2>
+        <p style="color:#98989F;font-size:15px;max-width:400px">Complete an interview first to see your vendor recommendation.</p>
+        <a href="/" style="background-color:#4F6EF7;color:#fff;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;text-decoration:none;">Start an interview →</a>
+      </div>`;
+    return;
+  }
+
+  renderDashboard(SESSION);
+}
+
+function downloadPDF() {
+  const content = document.getElementById('app').innerHTML;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Decisio – Vendor Report</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; padding: 24px; font-size: 12px; background: white; color: black; }
+        h1 { font-size: 20px !important; color: black !important; margin-bottom: 8px; }
+        strong { color: black !important; }
+        span, p, div { color: black !important; }
+        .card, .metric-card, .vendor-card { background: #f9f9f9 !important; border: 1px solid #ddd !important; border-radius: 8px; padding: 16px; margin-bottom: 16px; break-inside: avoid; page-break-inside: avoid; }
+        .vendor-card.winner { border-color: #4F6EF7 !important; border-width: 2px !important; }
+        [style*="display:grid"], [style*="display: grid"] { display: block !important; }
+        [style*="grid-template-columns"] { display: block !important; }
+        [style*="grid-template-columns"] > div { width: 100% !important; margin-bottom: 16px !important; display: block !important; }
+        .bar-track { height: 6px; background: #eee !important; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 3px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        .badge { border: 1px solid #ddd !important; border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 600; color: black !important; background: #eee !important; }
+        .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #555 !important; margin-bottom: 10px; }
+        .score-note { font-size: 10px; color: #555 !important; }
+        .pill { font-size: 10px; background: #eee !important; color: #555 !important; border-radius: 10px; padding: 2px 6px; }
+        .why-not-box { background: #fff5f5 !important; border: 1px solid #fca5a5 !important; border-radius: 8px; padding: 10px; color: #7f1d1d !important; }
+        .why-not-lbl { color: #D85A30 !important; }
+        .expiry-bar { background: #fffbeb !important; border: 1px solid #fde68a !important; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .sentiment-neg { background: #fff5f5 !important; border: 1px solid #fca5a5 !important; border-radius: 10px; padding: 1px 8px; font-size: 10px; color: #7f1d1d !important; }
+        .lockin-tag { border-radius: 10px; padding: 2px 7px; font-size: 10px; font-weight: 700; }
+        .lockin-tag-low { background: #d1fae5 !important; color: #065f46 !important; }
+        .lockin-tag-medium { background: #fef3c7 !important; color: #92400e !important; }
+        .lockin-tag-high { background: #fee2e2 !important; color: #991b1b !important; }
+        .rank-bar-track { flex: 1; height: 8px; background: #eee !important; border-radius: 5px; overflow: hidden; }
+        .flip-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee !important; }
+        input[type=range] { display: none !important; }
+        button { display: none !important; }
+        [id^="val-"] { display: none !important; }
+        nav { display: none !important; }
+        .card, .metric-card, .vendor-card, .expiry-bar, .why-not-box, .flip-item {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+        h1, h2, .section-title {
+          break-after: avoid !important;
+          page-break-after: avoid !important;
+        }
+        .vendor-card {
+          page-break-before: always !important;
+          break-before: always !important;
+        }
+        .vendor-card:first-of-type {
+          page-break-before: avoid !important;
+          break-before: avoid !important;
+        }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      ${content}
+      <script>window.onload = function() { window.print(); }<\/script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+function getDemoData() {
+  return {
+    "session_id": "demo-001",
+    "created_at": "2025-05-30T09:00:00Z",
+    "expires_recommendation_at": "2025-08-30T09:00:00Z",
+    "profile": {
+      "category": "CRM software",
+      "role": "VP of Engineering",
+      "team_size": 8,
+      "budget_monthly_usd": 2000,
+      "growth_rate_monthly_pct": 20,
+      "contract_preference": "monthly",
+      "priority": "compliance",
+      "must_haves": ["SOC 2 Type II certification", "REST API access", "GDPR compliance tools", "SSO support", "Mobile app", "Custom reporting"],
+      "dealbreakers": ["No SOC 2 Type II", "Per-email pricing at scale", "No API on base tier"]
+    },
+    "recommendation": {
+      "winner": "HubSpot",
+      "confidence": "moderate",
+      "summary": "HubSpot covers all 6 must-haves, comes in under budget at ~$1,800/month for your current team size, and has the strongest onboarding of the three shortlisted vendors.",
+      "expiry_reason": "HubSpot reprices annually in Q3. Recommend reviewing before August 2025.",
+      "flip_scenarios": [
+        { "condition": "If your budget were $4,000+/month", "outcome": "Salesforce becomes viable at Series A headcount." },
+        { "condition": "If SOC 2 compliance was not required", "outcome": "Pipedrive jumps to top pick." }
+      ]
+    },
+    "vendors": [
+      {
+        "id": "hubspot", "name": "HubSpot", "tagline": "Best all-in-one for growing teams",
+        "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 1800, "notes": "~$225/seat/mo for 8 seats." },
+        "scores": { "budget": 94, "budget_note": "Fits now", "features": 82, "features_note": "Strong CRM core", "compliance": 90, "compliance_note": "SOC 2 Type II certified", "growth": 58, "growth_note": "Pricing cliff at 10 seats" },
+        "overall_score": 83,
+        "regret": { "score": 6.2, "label": "Moderate risk", "based_on": "340+ verified user reviews", "reasons": ["Pricing jumps ~78% at 10-seat tier", "Add-ons average 1.4× quoted price by month 6"] },
+        "lockin": { "level": "medium", "score": 55, "explanation": "Migration typically takes 4–6 weeks." },
+        "sentiment": { "positive_pct": 78, "representative_quote": "Best onboarding we've had", "negative_pattern": "Pricing surprises after month 3" },
+        "negotiation_levers": [
+          { "tactic": "Ask for annual pre-pay", "detail": "15–20% off for upfront annual commitment." },
+          { "tactic": "Request a 90-day pilot", "detail": "Teams under 10 seats can negotiate a free trial extension." }
+        ],
+        "why_not": null
+      },
+      {
+        "id": "salesforce", "name": "Salesforce", "tagline": "Enterprise depth, enterprise cost",
+        "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 4800, "notes": "~$600/seat/mo for 8 seats." },
+        "scores": { "budget": 28, "budget_note": "2.4× over budget", "features": 95, "features_note": "Most complete CRM", "compliance": 98, "compliance_note": "Gold standard compliance", "growth": 88, "growth_note": "Scales to thousands of seats" },
+        "overall_score": 61,
+        "regret": { "score": 4.1, "label": "Low-moderate risk", "based_on": "890+ verified user reviews", "reasons": ["Requires dedicated admin", "Implementation runs over budget"] },
+        "lockin": { "level": "high", "score": 90, "explanation": "Migration typically takes 6–12 months." },
+        "sentiment": { "positive_pct": 71, "representative_quote": "Incredibly powerful once your team knows it", "negative_pattern": "Needs full-time admin" },
+        "negotiation_levers": [{ "tactic": "Push for multi-year pricing", "detail": "20–30% discount for 2–3 year contracts." }],
+        "why_not": "Starts at $4,800/mo — 2.4× your budget."
+      },
+      {
+        "id": "pipedrive", "name": "Pipedrive", "tagline": "Sales-pipeline focused, lightweight",
+        "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 800, "notes": "~$100/seat/mo for 8 seats." },
+        "scores": { "budget": 88, "budget_note": "Well under budget", "features": 61, "features_note": "Excellent pipeline management", "compliance": 44, "compliance_note": "No SOC 2 Type II", "growth": 52, "growth_note": "Hits limits at 20+ seats" },
+        "overall_score": 59,
+        "regret": { "score": 3.2, "label": "Low risk if compliance fits", "based_on": "520+ verified user reviews", "reasons": ["Outgrows reporting at 20-seat mark"] },
+        "lockin": { "level": "low", "score": 28, "explanation": "Migration effort typically under 2 weeks." },
+        "sentiment": { "positive_pct": 83, "representative_quote": "Simple, fast, does exactly what it says", "negative_pattern": "Reporting hits ceiling at scale" },
+        "negotiation_levers": [{ "tactic": "Annual plan discount", "detail": "~17% off on annual billing." }],
+        "why_not": "No SOC 2 Type II — hard dealbreaker."
+      }
+    ]
+  };
+}
+
+function scoreColor(n) { return n >= 80 ? '#1D9E75' : n >= 60 ? '#EF9F27' : '#D85A30'; }
+function lockinColor(lvl) { return lvl === 'low' ? '#1D9E75' : lvl === 'medium' ? '#EF9F27' : '#D85A30'; }
+function lockinTagClass(lvl) { return 'lockin-tag lockin-tag-' + lvl; }
+function confBadgeClass(conf) { return conf === 'high' ? 'badge-green' : conf === 'moderate' ? 'badge-amber' : 'badge-red'; }
+function fmtDate(iso) { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
+function fmtUSD(n) { return '$' + n.toLocaleString(); }
+
+function scoreBarHTML(label, score, note) {
+  const c = scoreColor(score);
+  return `<div style="display:flex;flex-direction:column;gap:4px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#98989F">${label}</span>
+      <span style="font-size:13px;font-weight:700;color:${c}">${score}</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" style="width:${score}%;background:${c}"></div></div>
+    <div class="score-note">${note}</div>
+  </div>`;
+}
+
+function vendorCardHTML(v) {
+  const s = v.scores;
+  const whyNot = v.why_not ? `<div class="why-not-box"><div class="why-not-lbl">Why not this vendor</div>${v.why_not}</div>` : '';
+  return `<div class="vendor-card" id="card-${v.id}" data-vendor-id="${v.id}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#fff">${v.name}</div>
+        <div style="font-size:12px;color:#98989F;margin-top:3px">${v.tagline}</div>
+      </div>
+      <span class="badge badge-blue top-pick-badge" id="badge-${v.id}" style="display:none">Top pick</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:8px">
+      <span style="font-size:38px;font-weight:800;line-height:1" id="weighted-${v.id}">—</span>
+      <span style="font-size:11px;color:#98989F;text-transform:uppercase;letter-spacing:.06em">weighted score</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="breakdown-${v.id}"></div>
+    <div style="display:flex;flex-direction:column;gap:11px">
+      ${scoreBarHTML('Budget', s.budget, s.budget_note)}
+      ${scoreBarHTML('Features', s.features, s.features_note)}
+      ${scoreBarHTML('Compliance', s.compliance, s.compliance_note)}
+      ${scoreBarHTML('Growth', s.growth, s.growth_note)}
+    </div>
+    ${whyNot}
+  </div>`;
+}
+
+function buildHeader(SESSION) {
+  const p = SESSION.profile;
+  return `<div style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="background:#1e3a5f;color:#60a5fa;font-size:12px;font-weight:600;padding:3px 11px;border-radius:20px">${p.category}</span>
+      <span style="font-size:12px;color:#98989F">Generated ${fmtDate(SESSION.created_at)}</span>
+    </div>
+    <h1 style="font-size:26px;font-weight:700;color:#fff;line-height:1.2;margin-top:4px">Your vendor recommendation</h1>
+    <div style="font-size:13px;color:#98989F">
+      <strong style="color:#fff">${p.role}</strong> &nbsp;&middot;&nbsp;
+      Team of <strong style="color:#fff">${p.team_size}</strong> &nbsp;&middot;&nbsp;
+      Budget <strong style="color:#fff">${fmtUSD(p.budget_monthly_usd)}/mo</strong> &nbsp;&middot;&nbsp;
+      <strong style="color:#fff">${p.growth_rate_monthly_pct}%</strong> monthly growth &nbsp;&middot;&nbsp;
+      Priority: <strong style="color:#fff">${p.priority}</strong>
+    </div>
+    <div style="margin-top:12px">
+      <button onclick="downloadPDF()" style="background-color:#4F6EF7;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;">
+        ↓ Download as PDF
+      </button>
+    </div>
+  </div>`;
+}
+
+function buildVerdictBar(SESSION) {
+  const rec = SESSION.recommendation;
+  return `<div class="card">
+    <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:8px">${rec.winner}</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <span class="badge ${confBadgeClass(rec.confidence)}">${rec.confidence} confidence</span>
+      <span class="badge badge-amber">⚠ Moderate regret risk</span>
+    </div>
+    <div style="font-size:14px;line-height:1.7;color:#ccc">${rec.summary}</div>
+  </div>`;
+}
+
+function buildBiasDetector(SESSION) {
+  const preferred = SESSION.profile?.search_signals?.preferred_vendor;
+  const topVendor = SESSION.vendors?.[0]?.name;
+  if (!preferred || !topVendor) return '';
+  const isMismatch = preferred.toLowerCase() !== topVendor.toLowerCase();
+  if (isMismatch) {
+    return `
+      <div style="background:#2a1a00;border:1px solid #f59e0b;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:12px">
+        <span style="font-size:20px;margin-top:2px;flex-shrink:0">👁</span>
+        <div>
+          <p style="margin:0 0 4px;font-weight:600;font-size:15px;color:#fbbf24">You came in favouring ${preferred}</p>
+          <p style="margin:0 0 8px;font-size:14px;color:#98989F">The data points to ${topVendor} instead. 92% of buyers start with a vendor in mind — the day-one favourite wins 80% of the time, not always because it's the best fit.</p>
+          <p style="margin:0;font-size:13px;color:#98989F">Scroll down to see why ${preferred} didn't rank first.</p>
+        </div>
+      </div>`;
+  } else {
+    return `
+      <div style="background:#001a2a;border:1px solid #3b82f6;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:12px">
+        <span style="font-size:20px;margin-top:2px;flex-shrink:0">🛡</span>
+        <div>
+          <p style="margin:0 0 4px;font-weight:600;font-size:15px;color:#60a5fa">You were already leaning toward ${preferred}</p>
+          <p style="margin:0;font-size:14px;color:#98989F">The data supports that — but 80% of buyers who go with their first instinct never stress-test it. The sections below do that for you.</p>
+        </div>
+      </div>`;
+  }
+}
+
+function buildMetricCards(SESSION, winner) {
+  const w = winner;
+  const mhCount = SESSION.profile.must_haves.length;
+  const lvl = w.lockin.level;
+  const lvlLabel = lvl.charAt(0).toUpperCase() + lvl.slice(1);
+  const lvlColor = lockinColor(lvl);
+  return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+    <div class="metric-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#98989F">Budget fit</div>
+      <div style="font-size:32px;font-weight:800;line-height:1;margin:8px 0 4px;color:#1D9E75">${w.scores.budget}</div>
+      <div style="font-size:11px;color:#98989F">/100 — ${w.name}</div>
+    </div>
+    <div class="metric-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#98989F">Must-haves met</div>
+      <div style="font-size:32px;font-weight:800;line-height:1;margin:8px 0 4px;color:#1D9E75">${mhCount}/${mhCount}</div>
+      <div style="font-size:11px;color:#98989F">All requirements covered</div>
+    </div>
+    <div class="metric-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#98989F">Regret score</div>
+      <div style="font-size:32px;font-weight:800;line-height:1;margin:8px 0 4px;color:#EF9F27">${w.regret.score}</div>
+      <div style="font-size:11px;color:#98989F">${w.regret.label} · /10 scale</div>
+    </div>
+    <div class="metric-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#98989F">Lock-in danger</div>
+      <div style="font-size:26px;font-weight:800;line-height:1;margin:8px 0 4px;color:${lvlColor}">${lvlLabel}</div>
+      <div style="font-size:11px;color:#98989F">Vendor dependency level</div>
+    </div>
+  </div>`;
+}
+
+function buildVendorComparison(SESSION) {
+  return `<div>
+    <div class="section-title">Vendor comparison</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="vendor-grid">
+      ${SESSION.vendors.map(v => vendorCardHTML(v)).join('')}
+    </div>
+  </div>`;
+}
+
+function buildSliders(SESSION) {
+  const sliders = SESSION.slider_config || [
+    { id: 'pricing', label: 'Price sensitivity', dimension: 'pricing', default_weight: 34 },
+    { id: 'feature_fit', label: 'Feature depth', dimension: 'feature_fit', default_weight: 33 },
+    { id: 'compliance', label: 'Compliance', dimension: 'compliance', default_weight: 33 }
+  ];
+
+  const chartRows = SESSION.vendors.map(v => `
+    <div style="display:flex;align-items:center;gap:12px" id="rankrow-${v.id}">
+      <span style="font-size:13px;font-weight:600;color:#fff;width:92px;flex-shrink:0">${v.name}</span>
+      <div class="rank-bar-track"><div class="rank-bar-fill" id="rankfill-${v.id}"></div></div>
+      <span style="font-size:13px;font-weight:700;width:30px;text-align:right;flex-shrink:0;color:#fff" id="rankscore-${v.id}">0</span>
+    </div>`).join('');
+
+  const sliderInputs = sliders.map(s => `
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-size:13px;font-weight:600;color:#fff">${s.label}</span>
+        <span style="font-size:13px;font-weight:700;color:#4F6EF7" id="val-${s.id}">${s.default_weight}</span>
+      </div>
+      <input type="range" id="slider-${s.id}" min="0" max="100" value="${s.default_weight}" oninput="updateSliders(window._SESSION)">
+      <div style="font-size:10px;color:#98989F;line-height:1.4">${s.description || ''}</div>
+    </div>`).join('');
+
+  return `<div class="card">
+    <div class="section-title">Priority weights — adjust to see how ranking changes</div>
+    <div style="display:grid;grid-template-columns:repeat(${sliders.length},1fr);gap:24px;margin:16px 0 20px">
+      ${sliderInputs}
+    </div>
+    <div class="section-title" style="margin-bottom:10px">Weighted ranking</div>
+    <div style="display:flex;flex-direction:column;gap:10px" id="rank-chart">${chartRows}</div>
+  </div>`;
+}
+
+function buildRegretAndLockin(SESSION, winner) {
+  const w = winner;
+  const reasons = w.regret.reasons.map(r => `<li style="font-size:12px;color:#ccc;padding-left:15px;position:relative;line-height:1.5"><span style="position:absolute;left:0;color:#EF9F27;font-size:14px;line-height:1.3">•</span>${r}</li>`).join('');
+  const lockItems = SESSION.vendors.map(v => `
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px">
+        <span style="font-size:13px;font-weight:600;color:#fff">${v.name}</span>
+        <span class="${lockinTagClass(v.lockin.level)}">${v.lockin.level}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${v.lockin.score}%;background:${lockinColor(v.lockin.level)}"></div></div>
+      <div style="font-size:11px;color:#98989F;line-height:1.5;margin-top:3px">${v.lockin.explanation}</div>
+    </div>`).join('');
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="section-title">Regret analysis — ${w.name}</div>
+      <div style="font-size:54px;font-weight:800;color:#EF9F27;line-height:1">${w.regret.score}</div>
+      <div style="font-size:14px;font-weight:600;color:#fbbf24;margin:4px 0 2px">${w.regret.label}</div>
+      <div style="font-size:11px;color:#98989F;margin-bottom:14px">Based on ${w.regret.based_on}</div>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:9px">${reasons}</ul>
+    </div>
+    <div class="card">
+      <div class="section-title">Lock-in danger</div>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-top:4px">${lockItems}</div>
+    </div>
+  </div>`;
+}
+
+function buildSentimentAndLevers(SESSION, winner) {
+  const icons = ['💡', '🧪', '🎯', '⏱'];
+  const sentItems = SESSION.vendors.map(v => `
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:600;color:#fff">${v.name}</span>
+        <span style="font-size:13px;font-weight:700;color:#1D9E75">${v.sentiment.positive_pct}% positive</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${v.sentiment.positive_pct}%;background:#1D9E75"></div></div>
+      <div style="font-size:11px;color:#98989F;font-style:italic;line-height:1.4">"${v.sentiment.representative_quote}"</div>
+      <span class="sentiment-neg">${v.sentiment.negative_pattern}</span>
+    </div>`).join('');
+  const levers = winner.negotiation_levers.map((lev, i) => `
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:30px;height:30px;min-width:30px;background:#1e3a5f;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-top:1px">${icons[i % icons.length]}</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#fff">${lev.tactic}</div>
+        <div style="font-size:12px;color:#98989F;line-height:1.55;margin-top:2px">${lev.detail}</div>
+      </div>
+    </div>`).join('');
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="section-title">Customer sentiment</div>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-top:4px">${sentItems}</div>
+    </div>
+    <div class="card">
+      <div class="section-title">Negotiation levers — ${winner.name}</div>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px">${levers}</div>
+    </div>
+  </div>`;
+}
+
+function buildFlipScenarios(SESSION) {
+  const items = SESSION.recommendation.flip_scenarios.map(s => `
+    <div class="flip-item">
+      <div style="width:28px;height:28px;min-width:28px;background:#1e3a5f;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#4F6EF7;font-weight:700;font-size:16px;margin-top:2px">→</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#60a5fa;margin-bottom:4px">${s.condition}</div>
+        <div style="font-size:13px;color:#ccc;line-height:1.6">${s.outcome}</div>
+      </div>
+    </div>`).join('');
+  return `<div class="card">
+    <div class="section-title">What would change this recommendation</div>
+    <div style="display:flex;flex-direction:column;margin-top:4px">${items}</div>
+  </div>`;
+}
+
+function buildExpiryWarning(SESSION) {
+  const expDate = fmtDate(SESSION.expires_recommendation_at);
+  return `<div class="expiry-bar">
+    <div style="font-size:20px;margin-top:1px">🕐</div>
+    <div>
+      <div style="font-size:13px;color:#fbbf24;line-height:1.6">${SESSION.recommendation.expiry_reason}</div>
+      <div style="font-size:11px;font-weight:700;color:#f59e0b;margin-top:5px;text-transform:uppercase;letter-spacing:.07em">Review by ${expDate}</div>
+    </div>
+  </div>`;
+}
+
+function renderDashboard(SESSION) {
+  window._SESSION = SESSION;
+  const winner = SESSION.vendors.find(v => v.name === SESSION.recommendation.winner);
+  document.getElementById('app').innerHTML = `
+    <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:24px">
+      ${buildHeader(SESSION)}
+      ${buildVerdictBar(SESSION)}
+      ${buildBiasDetector(SESSION)}
+      ${buildMetricCards(SESSION, winner)}
+      ${buildVendorComparison(SESSION)}
+      ${buildSliders(SESSION)}
+      ${buildRegretAndLockin(SESSION, winner)}
+      ${buildSentimentAndLevers(SESSION, winner)}
+      ${buildFlipScenarios(SESSION)}
+      ${buildExpiryWarning(SESSION)}
+    </div>`;
+  updateSliders(SESSION);
+}
+
+function reorderCards(orderedIds) {
+  const grid = document.getElementById('vendor-grid');
+  const cards = orderedIds.map(id => document.getElementById('card-' + id));
+  const first = cards.map(c => c.getBoundingClientRect());
+  cards.forEach(c => grid.appendChild(c));
+  cards.forEach((c, i) => {
+    const last = c.getBoundingClientRect();
+    const dx = first[i].left - last.left;
+    const dy = first[i].top - last.top;
+    c.style.transition = 'none';
+    c.style.transform = `translate(${dx}px,${dy}px)`;
+  });
+  requestAnimationFrame(() => {
+    cards.forEach(c => {
+      c.style.transition = 'transform 0.3s ease';
+      c.style.transform = '';
+    });
+  });
+}
+
+function updateSliders(SESSION) {
+  if (!SESSION) return;
+  const sliders = SESSION.slider_config || [
+    { id: 'pricing', dimension: 'pricing', default_weight: 34 },
+    { id: 'feature_fit', dimension: 'feature_fit', default_weight: 33 },
+    { id: 'compliance', dimension: 'compliance', default_weight: 33 }
+  ];
+
+  // Read current weights
+  const weights = {};
+  let total = 0;
+  sliders.forEach(s => {
+    const el = document.getElementById('slider-' + s.id);
+    const val = el ? parseInt(el.value, 10) : s.default_weight;
+    weights[s.dimension] = val;
+    total += val;
+    const valEl = document.getElementById('val-' + s.id);
+    if (valEl) valEl.textContent = val;
+  });
+
+  // Score each vendor
+  const results = SESSION.vendors.map(v => {
+    const ds = v.dimension_scores || {};
+    let weighted = 0;
+    const breakdown = {};
+    if (total > 0) {
+      sliders.forEach(s => {
+        const score = ds[s.dimension] || 0;
+        const contribution = (score * (weights[s.dimension] || 0)) / total;
+        weighted += contribution;
+        breakdown[s.id] = contribution;
+      });
+    }
+    return { v, weighted, breakdown };
+  });
+
+  // Update vendor cards
+  results.forEach(r => {
+    const el = document.getElementById('weighted-' + r.v.id);
+    if (el) {
+      el.textContent = Math.round(r.weighted);
+      el.style.color = scoreColor(r.weighted);
+    }
+    const bkEl = document.getElementById('breakdown-' + r.v.id);
+    if (bkEl) {
+      bkEl.innerHTML = sliders.map(s =>
+        `<span class="pill">${s.label} ${Math.round(r.breakdown[s.id] || 0)}pts</span>`
+      ).join('');
+    }
+  });
+
+  // Rank and reorder
+  const ranked = [...results].sort((a, b) => b.weighted - a.weighted);
+  ranked.forEach((r, i) => {
+    const fill = document.getElementById('rankfill-' + r.v.id);
+    if (fill) {
+      fill.style.width = r.weighted + '%';
+      fill.style.background = scoreColor(r.weighted);
+    }
+    const score = document.getElementById('rankscore-' + r.v.id);
+    if (score) score.textContent = Math.round(r.weighted);
+    const row = document.getElementById('rankrow-' + r.v.id);
+    if (row) row.style.order = i;
+  });
+
+  results.forEach(r => {
+    const card = document.getElementById('card-' + r.v.id);
+    const badge = document.getElementById('badge-' + r.v.id);
+    if (card) card.classList.remove('winner');
+    if (badge) badge.style.display = 'none';
+  });
+
+  const topId = ranked[0].v.id;
+  const topCard = document.getElementById('card-' + topId);
+  const topBadge = document.getElementById('badge-' + topId);
+  if (topCard) topCard.classList.add('winner');
+  if (topBadge) topBadge.style.display = '';
+  reorderCards(ranked.map(r => r.v.id));
+}
+
+async function loadSidebarHistory() {
+  try {
+    const response = await fetch('/api/history');
+    const sessions = await response.json();
+    const list = document.getElementById('history-list');
+    const currentSessionId = new URLSearchParams(window.location.search).get('session_id') || new URLSearchParams(window.location.search).get('session');
+
+    if (sessions.length === 0) {
+      list.innerHTML = '<div style="color:#98989F;font-size:12px;padding:8px">No results yet.</div>';
+      return;
+    }
+
+    list.innerHTML = sessions.map(s => `
+      <div style="position:relative;display:flex;align-items:center;border-radius:8px;margin-bottom:4px;background:${s.session_id === currentSessionId ? '#2C2C2E' : 'transparent'}"
+           onmouseover="this.querySelector('.dots-btn').style.opacity='1'"
+           onmouseout="this.querySelector('.dots-btn').style.opacity='0'">
+        <a href="/dashboard?session_id=${s.session_id}" style="flex:1;padding:10px 12px;text-decoration:none;overflow:hidden">
+          <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.category}</div>
+          <div style="font-size:11px;color:#98989F;margin-top:2px">→ ${s.winner}</div>
+          <div style="font-size:10px;color:#98989F;margin-top:2px">${new Date(s.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}</div>
+        </a>
+        <div class="dots-btn" style="opacity:0;padding:6px 8px;cursor:pointer;color:#98989F;font-size:16px;flex-shrink:0;transition:opacity .15s;position:relative"
+             onclick="event.stopPropagation();toggleMenu('${s.session_id}', this)">⋯
+          <div id="menu-${s.session_id}" style="display:none;position:absolute;right:0;top:24px;background:#2C2C2E;border:1px solid #3A3A3C;border-radius:8px;padding:4px;z-index:100;min-width:120px">
+            <div onclick="deleteSession('${s.session_id}')" style="padding:8px 12px;font-size:12px;color:#f87171;cursor:pointer;border-radius:6px"
+                 onmouseover="this.style.background='#3A3A3C'" onmouseout="this.style.background='transparent'">
+              🗑 Delete
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error('Failed to load sidebar history:', e);
+  }
+}
+
+loadSidebarHistory();
+function toggleMenu(sessionId, el) {
+  const menu = document.getElementById('menu-' + sessionId);
+  const isVisible = menu.style.display === 'block';
+  document.querySelectorAll('[id^="menu-"]').forEach(m => m.style.display = 'none');
+  menu.style.display = isVisible ? 'none' : 'block';
+  document.addEventListener('click', () => { menu.style.display = 'none'; }, { once: true });
+}
+
+async function deleteSession(sessionId) {
+  try {
+    const res = await fetch(`/api/session/${sessionId}`, { method: 'DELETE' });
+    if (res.ok) {
+      const currentSessionId = new URLSearchParams(window.location.search).get('session_id');
+      if (sessionId === currentSessionId) {
+        window.location.href = '/dashboard';
+      } else {
+        loadSidebarHistory();
+      }
+    }
+  } catch (e) {
+    console.error('Failed to delete session:', e);
+  }
+}
+loadSession();
+</script>
+{% endblock %}
