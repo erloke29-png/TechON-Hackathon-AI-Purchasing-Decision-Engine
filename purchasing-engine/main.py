@@ -17,12 +17,12 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1"
 )
 
-templates = Jinja2Templates(directory="static")
+templates = Jinja2Templates(directory="Frontend")
 
-with open("prompts/system_prompt.txt", "r") as f:
+with open("prompts/decisio.txt", "r") as f:
     SYSTEM_PROMPT = f.read()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="Frontend"), name="Frontend")
 
 @app.get("/")
 def root(request: Request):
@@ -61,10 +61,11 @@ async def save_session(request: Request):
     
     os.makedirs("data/sessions", exist_ok=True)
 
-    from search import run_searches
+    from search import run_searches, identify_vendors
     from report_agent import generate_session
 
-    tavily_json = run_searches(data)
+    vendors = identify_vendors(data)
+    tavily_json = run_searches(data, vendors)
     session = generate_session(tavily_json)
     session["session_id"] = session_id
 
