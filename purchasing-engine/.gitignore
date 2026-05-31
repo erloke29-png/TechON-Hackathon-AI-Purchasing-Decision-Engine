@@ -1,6 +1,5 @@
 .env
 data/sessions/
-echo venv/ >> .gitignore
 venv/
 purchasing-engine/venv/
 *.pyc
