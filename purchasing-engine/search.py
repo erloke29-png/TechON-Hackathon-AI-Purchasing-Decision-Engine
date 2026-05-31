@@ -44,10 +44,22 @@ async def run_searches(decision_profile: dict, vendors: list) -> dict:
 
     vendors_raw = [r for r in results if r is not None]
 
+    flattened = []
+    for vendor in vendors_raw:
+        name = vendor["name"]
+        for cat in ("complaints", "pricing", "slot3"):
+            flattened.append({
+                "vendor": name,
+                "category": cat,
+                "query": "",
+                "results": vendor.get(cat, []),
+            })
+
     return {
         "category": decision_profile.get("category", ""),
         "decision_profile": decision_profile,
-        "vendors_raw": vendors_raw
+        "vendors_raw": vendors_raw,
+        "results": flattened,
     }
 
 def identify_vendors(decision_profile: dict) -> list:

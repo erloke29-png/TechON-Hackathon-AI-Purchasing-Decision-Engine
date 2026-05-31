@@ -121,10 +121,25 @@ async function sendMessage(text) {
       const sessionResponse = await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileData)
+        body: JSON.stringify({
+          ...profileData,
+          chat_history: conversationHistory
+        })
       });
       const result = await sessionResponse.json();
-      window.location.href = `/dashboard?session_id=${result.session_id}`;
+      if (result.session_id) {
+        const loadingBar = document.getElementById('loading-bar');
+        if (loadingBar) loadingBar.style.width = '100%';
+        const loadingPct = document.getElementById('loading-pct');
+        if (loadingPct) loadingPct.textContent = '100%';
+        const loadingText = document.getElementById('loading-text');
+        if (loadingText) loadingText.textContent = 'Done! Loading your results...';
+        setTimeout(() => {
+          window.location.href = `/dashboard?session_id=${result.session_id}`;
+        }, 1500);
+      } else {
+        addMessage('assistant', 'Something went wrong. Please try again.');
+      }
     }
   }
 
