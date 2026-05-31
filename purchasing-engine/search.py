@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from tavily import TavilyClient
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -100,14 +101,84 @@ Search results:
         print(f"Error extracting vendor names: {e}")
         return []
 
-    vendors = []
-    for name in vendor_names:
+    def research_vendor(name):
         try:
-            pricing = tavily.search(query=f"{name} {queries['pricing']}", max_results=3)
-            complaints = tavily.search(query=f"{name} {queries['complaints']}", max_results=3)
-            lockin = tavily.search(query=f"{name} {queries['lock_in']}", max_results=3)
-            reviews = tavily.search(query=f"{name} {queries['reviews']}", max_results=3)
-            tco = tavily.search(query=f"{name} {queries['tco']}", max_results=3)
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                future_pricing    = executor.submit(tavily.search, f"{name} {queries['pricing']}", )
+                future_complaints = executor.submit(tavily.search, f"{name} {queries['complaints']}")
+                future_lockin     = executor.submit(tavily.search, f"{name} {queries['lock_in']}")
+                future_reviews    = executor.submit(tavily.search, f"{name} {queries['reviews']}")
+                future_tco        = executor.submit(tavily.search, f"{name} {queries['tco']}")
+
+                pricing    = future_pricing.result()
+                complaints = future_complaints.result()
+                lockin     = future_lockin.result()
+                reviews    = future_reviews.result()
+                tco        = future_tco.result()
+
+            synthesis = client.chat.completions.create(
+                model="perplexity/llama-3.1-sonar-large-128k-online",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"""Based on these search results about {name}, create a structured vendor profile tailored to this buyer.
+
+Buyer profile:
+{json.dumps(decision_profile, indent=2)}
+
+Pricing results:
+{json.dumps(pricing['results'])}
+
+Complaints results:
+{json.dumps(complaints['results'])}
+
+Lock-in results:
+{json.dumps(lockin['results'])}
+
+User reviews:
+{json.dumps(reviews['results'])}
+
+Total cost of ownership:
+{json.dumps(tco['results'])}
+
+Return ONLY this JSON object, nothing else:
+{{
+  "name": "{name}",
+  "tagline": "one sentence description",
+  "pricing": {{
+    "starting_price": 0,
+    "currency": "USD",
+    "period": "month",
+    "pricing_model": "per user / flat / usage based"
+  }},
+  "pros": ["pro 1", "pro 2", "pro 3"],
+  "cons": ["con 1", "con 2", "con 3"],
+  "red_flags": ["red flag 1", "red flag 2"],
+  "lock_in_score": 5,
+  "tco_notes": "hidden costs and total cost of ownership for this specific buyer",
+  "best_for": "type of buyer this suits best",
+  "verdict": "one sentence honest assessment for this specific buyer"
+}}"""
+                    }
+                ]
+            )
+
+            vendor_data = safe_json_parse(synthesis.choices[0].message.content)
+            if vendor_data:
+                return vendor_data
+        except Exception as e:
+            print(f"Error researching vendor {name}: {e}")
+            return None
+
+    vendors = []
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        results = executor.map(research_vendor, vendor_names)
+    
+    for result in results:
+        if result:
+            vendors.append(result)
+
+    return vendors
 
             synthesis = client.chat.completions.create(
                 model="perplexity/llama-3.1-sonar-large-128k-online",
