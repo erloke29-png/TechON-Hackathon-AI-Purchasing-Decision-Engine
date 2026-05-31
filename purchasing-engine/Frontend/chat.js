@@ -124,7 +124,7 @@ async function sendMessage(text) {
         body: JSON.stringify(profileData)
       });
       const result = await sessionResponse.json();
-      window.location.href = `/dashboard?session=${result.session_id}`;
+      window.location.href = `/dashboard?session_id=${result.session_id}`;
     }
   }
 

@@ -3,17 +3,15 @@ from tavily import TavilyClient
 from dotenv import load_dotenv
 import os
 import json
-import asyncio
 
 load_dotenv()
 
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
-def run_searches(decision_profile: dict, vendors: list) -> dict:
+async def run_searches(decision_profile: dict, vendors: list) -> dict:
     from query_builder import build_queries
 
-    # Generate targeted queries using query_builder
-    queries_per_vendor = asyncio.run(build_queries(decision_profile, vendors))
+    queries_per_vendor = await build_queries(decision_profile, vendors)
 
     def research_vendor(name):
         queries = queries_per_vendor.get(name, [])

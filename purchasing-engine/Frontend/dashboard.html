@@ -63,17 +63,15 @@
 }
 </style>
 
-<script>
-let SESSION = null;
-let winner = null;
-
 async function loadSession() {
   const params = new URLSearchParams(window.location.search);
-  const sessionId = params.get('session');
+  const sessionId = params.get('session_id') || params.get('session');
 
+  let SESSION;
   if (sessionId) {
     try {
       const response = await fetch(`/api/session/${sessionId}`);
+      if (!response.ok) throw new Error('Session not found');
       SESSION = await response.json();
     } catch (e) {
       console.error('Failed to load session:', e);
@@ -83,8 +81,7 @@ async function loadSession() {
     SESSION = getDemoData();
   }
 
-  winner = SESSION.vendors.find(v => v.name === SESSION.recommendation.winner);
-  renderDashboard();
+  renderDashboard(SESSION);
 }
 
 function downloadPDF() {
@@ -148,37 +145,31 @@ function getDemoData() {
       "growth_rate_monthly_pct": 20,
       "contract_preference": "monthly",
       "priority": "compliance",
-      "usage_estimates": { "seats": 8, "contacts": 25000, "emails_per_month": 10000 },
       "must_haves": ["SOC 2 Type II certification", "REST API access", "GDPR compliance tools", "SSO support", "Mobile app", "Custom reporting"],
-      "dealbreakers": ["No SOC 2 Type II", "Per-email pricing at scale", "No API on base tier"],
-      "contradictions": [{ "type": "soft", "description": "Monthly contract preference conflicts with best available pricing", "overridden": false }]
+      "dealbreakers": ["No SOC 2 Type II", "Per-email pricing at scale", "No API on base tier"]
     },
     "recommendation": {
       "winner": "HubSpot",
       "confidence": "moderate",
-      "summary": "HubSpot covers all 6 must-haves, comes in under budget at ~$1,800/month for your current team size, and has the strongest onboarding of the three shortlisted vendors. The key caveat is a sharp pricing jump at 10 seats — at 20% monthly growth you are 3 to 4 months away from that threshold.",
-      "expiry_reason": "HubSpot reprices annually in Q3. Salesforce enterprise pricing changes quarterly. Recommend reviewing before August 2025.",
+      "summary": "HubSpot covers all 6 must-haves, comes in under budget at ~$1,800/month for your current team size, and has the strongest onboarding of the three shortlisted vendors.",
+      "expiry_reason": "HubSpot reprices annually in Q3. Recommend reviewing before August 2025.",
       "flip_scenarios": [
         { "condition": "If your budget were $4,000+/month", "outcome": "Salesforce becomes viable at Series A headcount." },
-        { "condition": "If SOC 2 compliance was not required", "outcome": "Pipedrive jumps to top pick." },
-        { "condition": "If your growth rate slows below 10% per month", "outcome": "HubSpot's regret score falls from 6.2 to roughly 3.8." },
-        { "condition": "If you need deep marketing automation immediately", "outcome": "Salesforce and Pardot worth a closer look despite the budget stretch." }
+        { "condition": "If SOC 2 compliance was not required", "outcome": "Pipedrive jumps to top pick." }
       ]
     },
     "vendors": [
       {
         "id": "hubspot", "name": "HubSpot", "tagline": "Best all-in-one for growing teams",
-        "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 1800, "notes": "Starter tier at ~$225/seat/mo for 8 seats." },
-        "scores": { "budget": 94, "budget_note": "Fits now — jumps at 10 seats", "features": 82, "features_note": "Strong CRM core", "compliance": 90, "compliance_note": "SOC 2 Type II certified", "growth": 58, "growth_note": "Pricing cliff at 10 seats" },
+        "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 1800, "notes": "~$225/seat/mo for 8 seats." },
+        "scores": { "budget": 94, "budget_note": "Fits now", "features": 82, "features_note": "Strong CRM core", "compliance": 90, "compliance_note": "SOC 2 Type II certified", "growth": 58, "growth_note": "Pricing cliff at 10 seats" },
         "overall_score": 83,
-        "regret": { "score": 6.2, "label": "Moderate risk", "based_on": "340+ verified user reviews", "reasons": ["Pricing jumps ~78% at 10-seat tier", "Add-ons average 1.4× quoted price by month 6", "Data export takes 2–4 weeks", "Support quality drops for non-enterprise tiers"] },
+        "regret": { "score": 6.2, "label": "Moderate risk", "based_on": "340+ verified user reviews", "reasons": ["Pricing jumps ~78% at 10-seat tier", "Add-ons average 1.4× quoted price by month 6"] },
         "lockin": { "level": "medium", "score": 55, "explanation": "Migration typically takes 4–6 weeks." },
         "sentiment": { "positive_pct": 78, "representative_quote": "Best onboarding we've had", "negative_pattern": "Pricing surprises after month 3" },
         "negotiation_levers": [
           { "tactic": "Ask for annual pre-pay", "detail": "15–20% off for upfront annual commitment." },
-          { "tactic": "Request a 90-day pilot", "detail": "Teams under 10 seats can negotiate a free trial extension." },
-          { "tactic": "Name Pipedrive in the call", "detail": "HubSpot reps will move on price when a competitor is mentioned." },
-          { "tactic": "Time the close to end of quarter", "detail": "Discount authority increases ~10% in final two weeks." }
+          { "tactic": "Request a 90-day pilot", "detail": "Teams under 10 seats can negotiate a free trial extension." }
         ],
         "why_not": null
       },
@@ -187,13 +178,10 @@ function getDemoData() {
         "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 4800, "notes": "~$600/seat/mo for 8 seats." },
         "scores": { "budget": 28, "budget_note": "2.4× over budget", "features": 95, "features_note": "Most complete CRM", "compliance": 98, "compliance_note": "Gold standard compliance", "growth": 88, "growth_note": "Scales to thousands of seats" },
         "overall_score": 61,
-        "regret": { "score": 4.1, "label": "Low-moderate risk", "based_on": "890+ verified user reviews", "reasons": ["Requires dedicated admin", "Implementation runs over budget", "Customisation creates technical debt"] },
+        "regret": { "score": 4.1, "label": "Low-moderate risk", "based_on": "890+ verified user reviews", "reasons": ["Requires dedicated admin", "Implementation runs over budget"] },
         "lockin": { "level": "high", "score": 90, "explanation": "Migration typically takes 6–12 months." },
         "sentiment": { "positive_pct": 71, "representative_quote": "Incredibly powerful once your team knows it", "negative_pattern": "Needs full-time admin" },
-        "negotiation_levers": [
-          { "tactic": "Push for multi-year pricing", "detail": "20–30% discount for 2–3 year contracts." },
-          { "tactic": "Demand free implementation support", "detail": "For deals over $50k ARR, free onboarding hours are available." }
-        ],
+        "negotiation_levers": [{ "tactic": "Push for multi-year pricing", "detail": "20–30% discount for 2–3 year contracts." }],
         "why_not": "Starts at $4,800/mo — 2.4× your budget."
       },
       {
@@ -201,12 +189,10 @@ function getDemoData() {
         "pricing": { "model": "per-seat, tiered", "monthly_estimate_usd": 800, "notes": "~$100/seat/mo for 8 seats." },
         "scores": { "budget": 88, "budget_note": "Well under budget", "features": 61, "features_note": "Excellent pipeline management", "compliance": 44, "compliance_note": "No SOC 2 Type II", "growth": 52, "growth_note": "Hits limits at 20+ seats" },
         "overall_score": 59,
-        "regret": { "score": 3.2, "label": "Low risk if compliance fits", "based_on": "520+ verified user reviews", "reasons": ["Outgrows reporting at 20-seat mark", "Limited native integrations"] },
+        "regret": { "score": 3.2, "label": "Low risk if compliance fits", "based_on": "520+ verified user reviews", "reasons": ["Outgrows reporting at 20-seat mark"] },
         "lockin": { "level": "low", "score": 28, "explanation": "Migration effort typically under 2 weeks." },
         "sentiment": { "positive_pct": 83, "representative_quote": "Simple, fast, does exactly what it says", "negative_pattern": "Reporting hits ceiling at scale" },
-        "negotiation_levers": [
-          { "tactic": "Annual plan discount", "detail": "~17% off on annual billing." }
-        ],
+        "negotiation_levers": [{ "tactic": "Annual plan discount", "detail": "~17% off on annual billing." }],
         "why_not": "No SOC 2 Type II — hard dealbreaker."
       }
     ]
@@ -258,7 +244,7 @@ function vendorCardHTML(v) {
   </div>`;
 }
 
-function buildHeader() {
+function buildHeader(SESSION) {
   const p = SESSION.profile;
   return `<div style="display:flex;flex-direction:column;gap:8px">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -281,7 +267,7 @@ function buildHeader() {
   </div>`;
 }
 
-function buildVerdictBar() {
+function buildVerdictBar(SESSION) {
   const rec = SESSION.recommendation;
   return `<div class="card">
     <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:8px">${rec.winner}</div>
@@ -293,7 +279,7 @@ function buildVerdictBar() {
   </div>`;
 }
 
-function buildMetricCards() {
+function buildMetricCards(SESSION, winner) {
   const w = winner;
   const mhCount = SESSION.profile.must_haves.length;
   const lvl = w.lockin.level;
@@ -323,7 +309,7 @@ function buildMetricCards() {
   </div>`;
 }
 
-function buildVendorComparison() {
+function buildVendorComparison(SESSION) {
   return `<div>
     <div class="section-title">Vendor comparison</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="vendor-grid">
@@ -332,7 +318,7 @@ function buildVendorComparison() {
   </div>`;
 }
 
-function buildSliders() {
+function buildSliders(SESSION) {
   const chartRows = SESSION.vendors.map(v => `
     <div style="display:flex;align-items:center;gap:12px" id="rankrow-${v.id}">
       <span style="font-size:13px;font-weight:600;color:#fff;width:92px;flex-shrink:0">${v.name}</span>
@@ -369,7 +355,7 @@ function buildSliders() {
   </div>`;
 }
 
-function buildRegretAndLockin() {
+function buildRegretAndLockin(SESSION, winner) {
   const w = winner;
   const reasons = w.regret.reasons.map(r => `<li style="font-size:12px;color:#ccc;padding-left:15px;position:relative;line-height:1.5"><span style="position:absolute;left:0;color:#EF9F27;font-size:14px;line-height:1.3">•</span>${r}</li>`).join('');
   const lockItems = SESSION.vendors.map(v => `
@@ -396,7 +382,7 @@ function buildRegretAndLockin() {
   </div>`;
 }
 
-function buildSentimentAndLevers() {
+function buildSentimentAndLevers(SESSION, winner) {
   const icons = ['💡', '🧪', '🎯', '⏱'];
   const sentItems = SESSION.vendors.map(v => `
     <div style="display:flex;flex-direction:column;gap:5px">
@@ -428,7 +414,7 @@ function buildSentimentAndLevers() {
   </div>`;
 }
 
-function buildFlipScenarios() {
+function buildFlipScenarios(SESSION) {
   const items = SESSION.recommendation.flip_scenarios.map(s => `
     <div class="flip-item">
       <div style="width:28px;height:28px;min-width:28px;background:#1e3a5f;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#4F6EF7;font-weight:700;font-size:16px;margin-top:2px">→</div>
@@ -443,7 +429,7 @@ function buildFlipScenarios() {
   </div>`;
 }
 
-function buildExpiryWarning() {
+function buildExpiryWarning(SESSION) {
   const expDate = fmtDate(SESSION.expires_recommendation_at);
   return `<div class="expiry-bar">
     <div style="font-size:20px;margin-top:1px">🕐</div>
@@ -454,20 +440,21 @@ function buildExpiryWarning() {
   </div>`;
 }
 
-function renderDashboard() {
+function renderDashboard(SESSION) {
+  const winner = SESSION.vendors.find(v => v.name === SESSION.recommendation.winner);
   document.getElementById('app').innerHTML = `
     <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:24px">
-      ${buildHeader()}
-      ${buildVerdictBar()}
-      ${buildMetricCards()}
-      ${buildVendorComparison()}
-      ${buildSliders()}
-      ${buildRegretAndLockin()}
-      ${buildSentimentAndLevers()}
-      ${buildFlipScenarios()}
-      ${buildExpiryWarning()}
+      ${buildHeader(SESSION)}
+      ${buildVerdictBar(SESSION)}
+      ${buildMetricCards(SESSION, winner)}
+      ${buildVendorComparison(SESSION)}
+      ${buildSliders(SESSION)}
+      ${buildRegretAndLockin(SESSION, winner)}
+      ${buildSentimentAndLevers(SESSION, winner)}
+      ${buildFlipScenarios(SESSION)}
+      ${buildExpiryWarning(SESSION)}
     </div>`;
-  updateSliders();
+  updateSliders(SESSION);
 }
 
 function reorderCards(orderedIds) {
@@ -490,7 +477,7 @@ function reorderCards(orderedIds) {
   });
 }
 
-function updateSliders() {
+function updateSliders(SESSION) {
   const p = parseInt(document.getElementById('slider-price').value, 10);
   const f = parseInt(document.getElementById('slider-features').value, 10);
   const c = parseInt(document.getElementById('slider-compliance').value, 10);
@@ -536,5 +523,4 @@ function updateSliders() {
 }
 
 loadSession();
-</script>
 {% endblock %}

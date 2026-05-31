@@ -217,7 +217,7 @@ async def generate_results(
     )
 
     response = await client.chat.completions.create(
-        model="anthropic/claude-sonnet-4-5",
+        model=os.getenv("MODEL", "anthropic/claude-sonnet-4-5"),
         messages=[
             {"role": "system", "content": RESULTS_AGENT_SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
