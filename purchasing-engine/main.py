@@ -23,7 +23,7 @@ client = AsyncOpenAI(
 
 templates = Jinja2Templates(directory="Frontend")
 
-with open("prompts/decisio.txt", "r") as f:
+with open("prompts/decisio.txt", "r", encoding="utf-8") as f:
     SYSTEM_PROMPT = f.read()
 
 app.mount("/static", StaticFiles(directory="Frontend"), name="Frontend")
