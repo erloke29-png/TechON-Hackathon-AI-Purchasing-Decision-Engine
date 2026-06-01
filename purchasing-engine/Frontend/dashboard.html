@@ -388,7 +388,7 @@ function buildBiasDetector(SESSION) {
 function buildMetricCards(SESSION, winner) {
   const w = winner;
   const mhCount = SESSION.profile.must_haves.length;
-  const lvl = w.lockin.level;
+  const lvl = (w.lock_in || w.lockin || {}).level;
   const lvlLabel = lvl.charAt(0).toUpperCase() + lvl.slice(1);
   const lvlColor = lockinColor(lvl);
   return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
@@ -465,10 +465,10 @@ function buildRegretAndLockin(SESSION, winner) {
     <div style="display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px">
         <span style="font-size:13px;font-weight:600;color:#fff">${v.name}</span>
-        <span class="${lockinTagClass(v.lockin.level)}">${v.lockin.level}</span>
+        <span class="${lockinTagClass((v.lock_in || v.lockin || {}).level)}">${(v.lock_in || v.lockin || {}).level}</span>
       </div>
-      <div class="bar-track"><div class="bar-fill" style="width:${v.lockin.score}%;background:${lockinColor(v.lockin.level)}"></div></div>
-      <div style="font-size:11px;color:#98989F;line-height:1.5;margin-top:3px">${v.lockin.explanation}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v.lock_in || v.lockin || {}).score}%;background:${lockinColor((v.lock_in || v.lockin || {}).level)}"></div></div>
+      <div style="font-size:11px;color:#98989F;line-height:1.5;margin-top:3px">${(v.lock_in || v.lockin || {}).explanation}</div>
     </div>`).join('');
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div class="card">
