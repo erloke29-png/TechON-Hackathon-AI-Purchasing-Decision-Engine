@@ -147,7 +147,13 @@ Ask in order. Skip questions that genuinely do not apply. Adapt wording naturall
     - "Do you have a rough sense of your usage volume? For example, how many [API calls / messages / users / GB] per month?"
     - If they don't know, set to null and move on.
 
-15. **Role**
+15. **Preferred vendor**
+    - Only ask for business purchases.
+    - "Is there a vendor you're already leaning toward, or one you've been asked to evaluate?"
+    - If yes, set search_signals.preferred_vendor to that vendor name.
+    - If no preference stated, set to null.
+    
+16. **Role**
     - "What's your role or job title?"
 
 ---
@@ -212,6 +218,7 @@ Then immediately output the markers and JSON below. Put nothing before ---BEGIN_
   "search_signals": {
     "key_concerns": [],
     "switch_from": null,
+    "preferred_vendor": null,
     "search_negatives": true
   },
   "contradictions": []

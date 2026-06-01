@@ -112,7 +112,8 @@ def adapt_result_to_session(result: dict, profile: dict) -> dict:
             "contract_preference":     business.get("contract_preference", "monthly"),
             "priority":                profile.get("priority", "value"),
             "must_haves":              profile.get("must_haves", []),
-            "dealbreakers":            profile.get("dealbreakers", [])
+            "dealbreakers":            profile.get("dealbreakers", []),
+            "preferred_vendor":        profile.get("search_signals", {}).get("preferred_vendor", None),
         },
         "recommendation": {
             "winner":         winner_name,

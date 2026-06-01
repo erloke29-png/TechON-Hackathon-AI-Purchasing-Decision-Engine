@@ -306,7 +306,7 @@ async def generate_results(
             {"role": "system", "content": RESULTS_AGENT_SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ],
-        max_tokens=8000,
+        max_tokens=10000,
         temperature=0.3,
     )
 
