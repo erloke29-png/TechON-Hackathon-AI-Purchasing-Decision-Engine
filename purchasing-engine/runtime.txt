@@ -1,0 +1,4 @@
+echo "python-3.11.0" > purchasing-engine/runtime.txt
+git add purchasing-engine/runtime.txt
+git commit -m "fix: force Python 3.11 on Render"
+git push origin main
