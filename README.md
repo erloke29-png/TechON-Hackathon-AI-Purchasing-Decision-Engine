@@ -83,14 +83,6 @@ purchasing-engine/
 5. Under **Environment Variables**, add `OPENROUTER_API_KEY` with your key
 6. Click **Deploy** — live in ~3 minutes
 
-## Team
-
-| Person | Owns |
-|--------|------|
-| [Name] | Chat interview + decision profile JSON |
-| [Name] | Results dashboard + comparison table |
-| [Name] | Live sliders + decision expiry trigger |
-| [Name] | Risk panel + lock-in ratings + regret score + sentiment |
 
 ## Demo scenario
 
