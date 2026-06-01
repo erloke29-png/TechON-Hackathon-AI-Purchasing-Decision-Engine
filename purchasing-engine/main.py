@@ -25,7 +25,7 @@ client = AsyncOpenAI(
     base_url="https://openrouter.ai/api/v1"
 )
 
-templates = Jinja2Templates(directory="Frontend")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "Frontend"))
 
 with open("prompts/decisio.txt", "r", encoding="utf-8") as f:
     SYSTEM_PROMPT = f.read()
