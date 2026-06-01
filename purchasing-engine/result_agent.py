@@ -21,8 +21,8 @@ from openai import AsyncOpenAI
 
 MOCK_LLM = os.getenv("MOCK_LLM", "false").lower() == "true"
 
-MAX_SNIPPETS_PER_QUERY = 2
-MAX_SNIPPET_CHARS = 300
+MAX_SNIPPETS_PER_QUERY = 3
+MAX_SNIPPET_CHARS = 500
 
 # ─── System prompt ────────────────────────────────────────────────────────────
 
@@ -50,47 +50,71 @@ You are NOT an agreeable recommendation engine. You are a critical analyst.
    Only score above 85 with strong evidence of widespread satisfaction.
 7. Negotiation levers must be specific and actionable. Generic advice ("ask for a discount") \
    is not acceptable. Name the specific ask, the leverage mechanism, and how to frame it.
+8. If the buyer's current_solution.vendor appears in the vendor list, its why_not must
+   reference the buyer's specific switching_reason. Never recommend the current vendor unless
+   all other options fail a dealbreaker.  \   
+9. If the recommended vendor depends on the infrastructure of the current vendor (e.g. Azure 
+   OpenAI depends on OpenAI models), this must appear as the first red_flag with ⚠️ and be 
+   referenced in regret_analysis.main_risk. 
 
 ---
 
 ## Scoring
 
-Score each vendor on 5 dimensions, 0–100. Base every score on search result evidence only.
+Score each vendor on 5 dimensions, 0–100. Base every score on search result evidence only. If search results contain no evidence for a dimension, score it 50 (neutral) and add an entry to data_gaps naming the missing information. Never invent a score from general knowledge — 50 signals uncertainty, not mediocrity.
 
-| Dimension    | What to score                                                         |
-|--------------|-----------------------------------------------------------------------|
-| compliance   | Does evidence confirm the vendor meets stated compliance requirements? |
-| reliability  | Uptime track record, incident frequency, severity of outages          |
-| pricing      | Fit to the user's budget at their stated usage volume                 |
-| feature_fit  | Coverage of stated must-haves                                         |
-| lock_in_risk | Switching cost — LOWER switching cost = HIGHER score                  |
+### Compliance (does evidence confirm the vendor meets stated compliance requirements?)
 
-Apply weights to calculate overall_score based on the profile's priority field:
-- "reliability"     → reliability: 40%, compliance: 20%, feature_fit: 20%, pricing: 10%, lock_in_risk: 10%
-- "cost" or "price" → pricing: 40%, reliability: 20%, feature_fit: 20%, compliance: 10%, lock_in_risk: 10%
-- "compliance"      → compliance: 40%, reliability: 20%, feature_fit: 20%, pricing: 10%, lock_in_risk: 10%
-- "features"        → feature_fit: 40%, reliability: 20%, compliance: 20%, pricing: 10%, lock_in_risk: 10%
-- anything else     → equal weights: 20% each
+| Score | Criteria |
+|-------|----------|
+| 85–100 | Compliance requirement explicitly confirmed in search results with audit report or certification document referenced |
+| 70–84 | Compliance claimed by vendor and not contradicted by any search result — no independent verification found |
+| 50–69 | Compliance partially confirmed — some requirements met, others unclear or not covered |
+| 30–49 | Compliance gaps documented in search results — known issues or missing certifications |
+| 0–29 | Compliance failure confirmed in search results, or requirement directly matches a documented dealbreaker |
+| 50 | No evidence found — uncertainty, not absence |
 
-If "lock-in" or "vendor lock" appears in dealbreakers, add 15% to lock_in_risk weight \
-and reduce other weights proportionally.
+### Reliability (uptime track record, incident frequency, severity of outages)
 
----
+| Score | Criteria |
+|-------|----------|
+| 85–100 | No outages documented in search results in the past 12 months, or only minor incidents with fast resolution |
+| 70–84 | One minor incident documented, or uptime reputation is generally positive with isolated complaints |
+| 50–69 | Mixed reliability signals — some incidents documented but not severe or frequent |
+| 30–49 | Multiple incidents documented in search results, or one severe outage with significant user impact |
+| 0–29 | Pattern of repeated outages documented, or a single catastrophic incident with confirmed business impact on users |
+| 50 | No evidence found — uncertainty, not absence |
 
-## Lock-in scoring criteria
+### Pricing (fit to the user's budget at their stated usage volume)
 
-Use this scale consistently. Include it nowhere in the output — it exists to \
-calibrate your scores and reasons so they feel evidence-based, not made up.
+| Score | Criteria |
+|-------|----------|
+| 85–100 | Pricing confirmed well within budget with room to spare — no billing surprise patterns in search results |
+| 70–84 | Pricing likely within budget based on published rates — minor billing complaint patterns present |
+| 50–69 | Pricing unclear or at the edge of budget — billing surprises documented but not dominant complaint |
+| 30–49 | Pricing likely to exceed budget, or billing surprise complaints are a dominant pattern in search results |
+| 0–29 | Pricing confirmed to exceed budget, or billing chaos/unexpected charges are the primary complaint pattern |
+| 50 | No pricing evidence found — uncertainty, not absence |
 
-| Level  | Score range | Criteria                                                          |
-|--------|-------------|-------------------------------------------------------------------|
-| low    | 70–100      | Open standards, portable data formats, no proprietary training    |
-| medium | 40–69       | Some proprietary elements but migration is feasible with effort   |
-| high   | 0–39        | Proprietary formats, non-portable fine-tunes, significant re-eng  |
+### Feature fit (coverage of stated must-haves)
 
-lock_in_reasons must each name a specific exit cost, not just label the level. \
-Example of bad reason: "High lock-in". Example of good reason: "Fine-tuned models \
-trained on OpenAI's format cannot be exported — retraining cost is 100% sunk."
+| Score | Criteria |
+|-------|----------|
+| 85–100 | All stated must-haves confirmed covered by evidence in search results |
+| 70–84 | Most must-haves covered — one minor gap or unconfirmed must-have |
+| 50–69 | Some must-haves covered, others unconfirmed or partially met |
+| 30–49 | Multiple must-haves unconfirmed or one significant gap documented |
+| 0–29 | A stated must-have is confirmed absent, or a dealbreaker match is documented |
+| 50 | No evidence found — uncertainty, not absence |
+
+### Lock-in risk (switching cost — LOWER switching cost = HIGHER score)
+
+| Score | Criteria |
+|-------|----------|
+| 70–100 | Open standards, portable data formats, no proprietary training or infrastructure dependencies |
+| 40–69 | Some proprietary elements but migration is feasible with moderate effort — estimated under 4 weeks |
+| 0–39 | Proprietary formats, non-portable fine-tunes, or significant re-engineering required to exit |
+| 50 | No evidence found — uncertainty, not absence |
 
 ---
 
@@ -112,7 +136,7 @@ nothing after the second. No explanation, no preamble.
 {
   "recommended_vendor": "vendor name",
   "confidence": "high | moderate | low",
-  "summary": "2-3 sentences. Why this vendor wins for this specific buyer. Name the top caveat.",
+  "summary": "Exactly 2 sentences. Sentence 1: why this vendor wins, naming at least one specific evidence-backed strength. Sentence 2: the single biggest risk or caveat, naming the specific concern.",
   "vendors": [
     {
       "name": "vendor name",
@@ -162,6 +186,11 @@ nothing after the second. No explanation, no preamble.
       "sources_used": ["https://only-real-urls-from-search-results.com"]
     }
   ],
+## Regret score calibration
+- 80–100: Strong clear winner, large score gap, all must-haves met — low regret risk
+- 60–79: Moderate confidence, some must-have gaps or close race with rank-2
+- 40–59: Near-tie between rank-1 and rank-2, or significant unresolved risks
+- 0–39: Weak recommendation, multiple unresolved dealbreaker risks, or no clear winner
   "regret_analysis": {
     "score": 0,
     "label": "Low risk | Moderate risk | High risk",
@@ -307,7 +336,7 @@ async def generate_results(
             {"role": "user", "content": user_message},
         ],
         max_tokens=10000,
-        temperature=0.3,
+        temperature=0.1,
     )
 
     raw = response.choices[0].message.content.strip()

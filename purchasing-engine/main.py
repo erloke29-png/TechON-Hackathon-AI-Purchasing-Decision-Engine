@@ -8,11 +8,15 @@ import os
 import json
 import uuid
 import datetime
+import asyncio
+from typing import Dict
 
 from search import identify_vendors, run_searches
 from result_agent import get_recommendation
 
 load_dotenv()
+
+processing_jobs: Dict[str, dict] = {}
 
 app = FastAPI()
 
@@ -114,6 +118,8 @@ def adapt_result_to_session(result: dict, profile: dict) -> dict:
             "must_haves":              profile.get("must_haves", []),
             "dealbreakers":            profile.get("dealbreakers", []),
             "preferred_vendor":        profile.get("search_signals", {}).get("preferred_vendor", None),
+            "current_stack":           profile.get("search_signals", {}).get("current_stack", []),
+            "roi_timeline":            profile.get("search_signals", {}).get("roi_timeline", None),
         },
         "recommendation": {
             "winner":         winner_name,
@@ -134,6 +140,30 @@ def adapt_result_to_session(result: dict, profile: dict) -> dict:
         "data_gaps": result.get("data_gaps", []),
         "vendors": adapted_vendors
     }
+
+async def run_pipeline(session_id: str, data: dict):
+    try:
+        vendors = identify_vendors(data)
+        if not vendors:
+            processing_jobs[session_id] = {"status": "error", "error": "Could not identify vendors"}
+            return
+
+        search_data = await run_searches(data, vendors)
+        result = await get_recommendation(data, search_data, client)
+
+        session = adapt_result_to_session(result, data)
+        session["session_id"] = session_id
+        session["chat_history"] = data.get("chat_history", [])
+
+        with open(f"data/sessions/{session_id}.json", "w") as f:
+            json.dump(session, f)
+
+        processing_jobs.pop(session_id, None)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        processing_jobs[session_id] = {"status": "error", "error": str(e)}
 
 @app.get("/")
 def root(request: Request):
@@ -185,6 +215,7 @@ async def save_session(request: Request):
 
         session = adapt_result_to_session(result, data)
         session["session_id"] = session_id
+        session["chat_history"] = data.get("chat_history", [])
 
         with open(f"data/sessions/{session_id}.json", "w") as f:
             json.dump(session, f)
@@ -195,6 +226,30 @@ async def save_session(request: Request):
         import traceback
         traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/api/session/start")
+async def start_session(request: Request):
+    try:
+        data = await request.json()
+        session_id = str(uuid.uuid4())
+        os.makedirs("data/sessions", exist_ok=True)
+        processing_jobs[session_id] = {"status": "processing"}
+        asyncio.create_task(run_pipeline(session_id, data))
+        return JSONResponse({"session_id": session_id})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/session/{session_id}/status")
+def get_session_status(session_id: str):
+    session_path = f"data/sessions/{session_id}.json"
+    if os.path.exists(session_path):
+        return JSONResponse({"status": "complete", "session_id": session_id})
+    if session_id in processing_jobs:
+        job = processing_jobs[session_id]
+        if job.get("status") == "error":
+            return JSONResponse({"status": "error", "error": job.get("error", "Unknown error")})
+        return JSONResponse({"status": "processing"})
+    return JSONResponse({"status": "not_found"}, status_code=404)
 
 @app.get("/api/session/{session_id}")
 def get_session(session_id: str):

@@ -142,18 +142,24 @@ Ask in order. Skip questions that genuinely do not apply. Adapt wording naturall
     - Set timeline to a human-readable string (e.g. "2 weeks", "end of quarter", "6 months").
     - If they don't know, set to null and move on.
 
-14. **Usage estimates**
+14. **ROI timeline**
+    - Only ask for business purchases where the category involves software or services.
+    - "When do you need to show measurable results or justify this purchase to stakeholders?"
+    - Set search_signals.roi_timeline to a human-readable string (e.g. "3 months", "end of quarter", "6 months").
+    - If they don't know or it's not relevant, set to null and move on.
+
+15. **Usage estimates**
     - Only ask if category involves metered or consumption-based pricing (e.g. API calls, tokens, seats, storage, data volume).
     - "Do you have a rough sense of your usage volume? For example, how many [API calls / messages / users / GB] per month?"
     - If they don't know, set to null and move on.
 
-15. **Preferred vendor**
+16. **Preferred vendor**
     - Only ask for business purchases.
     - "Is there a vendor you're already leaning toward, or one you've been asked to evaluate?"
     - If yes, set search_signals.preferred_vendor to that vendor name.
     - If no preference stated, set to null.
-    
-16. **Role**
+
+17. **Role**
     - "What's your role or job title?"
 
 ---
@@ -219,6 +225,8 @@ Then immediately output the markers and JSON below. Put nothing before ---BEGIN_
     "key_concerns": [],
     "switch_from": null,
     "preferred_vendor": null,
+    "current_stack": [],
+    "roi_timeline": null,
     "search_negatives": true
   },
   "contradictions": []
@@ -233,6 +241,8 @@ Before outputting the JSON, derive search_signals from the collected fields:
 - key_concerns: combine must_haves + dealbreakers + compliance_requirements into a flat list of the most search-relevant concerns (max 5, prioritise specificity over generality)
 - switch_from: copy current_solution.vendor if not null, else null
 - search_negatives: always true — the downstream search should actively look for complaints, failure cases, and negative reviews, not just marketing content
+- current_stack: list of tools the buyer mentioned using (e.g. Slack, Google Workspace, Salesforce) — extract from must_haves, constraints, and any tools mentioned during the interview
+- roi_timeline: copy directly from the buyer's answer to the ROI timeline question, or null if not provided
 
 ---
 

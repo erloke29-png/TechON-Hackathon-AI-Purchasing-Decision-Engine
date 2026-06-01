@@ -309,7 +309,7 @@ function buildHeader(SESSION) {
       Team of <strong style="color:#fff">${p.team_size}</strong> &nbsp;&middot;&nbsp;
       Budget <strong style="color:#fff">${fmtUSD(p.budget_monthly_usd)}/mo</strong> &nbsp;&middot;&nbsp;
       <strong style="color:#fff">${p.growth_rate_monthly_pct}%</strong> monthly growth &nbsp;&middot;&nbsp;
-      Priority: <strong style="color:#fff">${p.priority}</strong>
+      Priority: <strong style="color:#fff">${(p.priority || '').length > 60 ? (p.priority || '').slice(0, 60) + '...' : (p.priority || '')}</strong>
     </div>
     <div style="margin-top:12px">
       <button onclick="downloadPDF()" style="background-color:#4F6EF7;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;">
@@ -328,6 +328,33 @@ function buildVerdictBar(SESSION) {
       <span class="badge badge-amber">⚠ Moderate regret risk</span>
     </div>
     <div style="font-size:14px;line-height:1.7;color:#ccc">${rec.summary}</div>
+  </div>`;
+}
+
+function buildROIMismatch(SESSION) {
+  const roiTimeline = SESSION.profile?.search_signals?.roi_timeline || SESSION.profile?.roi_timeline;
+  if (!roiTimeline) return '';
+
+  const winner = SESSION.vendors.find(v => v.name === SESSION.recommendation.winner);
+  if (!winner) return '';
+
+  const urgentKeywords = ['month', 'week', '30 day', '60 day', '90 day', 'quarter', 'immediately', 'asap', 'urgent'];
+  const slowKeywords = ['complex', 'weeks', 'onboard', 'setup', 'configure', 'admin', 'migration', 'rough'];
+
+  const isUrgent = urgentKeywords.some(k => roiTimeline.toLowerCase().includes(k));
+  const isSlow = winner.first_90_days && slowKeywords.some(k => winner.first_90_days.toLowerCase().includes(k));
+
+  if (!isUrgent || !isSlow) return '';
+
+  const runnerUp = SESSION.vendors.find(v => v.name !== SESSION.recommendation.winner && !v.why_not?.includes('dealbreaker'));
+
+  return `<div style="background:#1a0a2e;border:1px solid #7c3aed;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:12px;">
+    <div style="font-size:20px;margin-top:2px;flex-shrink:0">⏱</div>
+    <div>
+      <div style="margin:0 0 4px;font-weight:600;font-size:15px;color:#a78bfa;">ROI timeline risk — you need results in ${roiTimeline}</div>
+      <div style="margin:0 0 8px;font-size:14px;color:#98989F;line-height:1.6;">${winner.name} has a known onboarding complexity that may delay time-to-value. 57% of buyers expect ROI within 3 months — slow onboarding is the most common reason they don't get it.</div>
+      ${runnerUp ? `<div style="font-size:13px;color:#98989F;">Consider <strong style="color:#fff">${runnerUp.name}</strong> if faster time-to-value is critical — compare onboarding timelines in the First 90 Days section below.</div>` : ''}
+    </div>
   </div>`;
 }
 
@@ -458,6 +485,86 @@ function buildRegretAndLockin(SESSION, winner) {
   </div>`;
 }
 
+function buildDecisionComplexity(SESSION) {
+  const p = SESSION.profile;
+  const mustHaves = (p.must_haves || []).length;
+  const dealbreakers = (p.dealbreakers || []).length;
+  const teamSize = p.team_size || 1;
+  const isStrictBudget = p.contract_preference && p.contract_preference.toLowerCase().includes('month');
+
+  let score = 0;
+  score += Math.min(mustHaves * 10, 40);
+  score += Math.min(dealbreakers * 10, 30);
+  score += teamSize > 20 ? 20 : teamSize > 5 ? 10 : 0;
+  score += isStrictBudget ? 10 : 0;
+
+  const level = score >= 60 ? 'red' : score >= 30 ? 'amber' : 'green';
+  const label = score >= 60 ? 'High complexity' : score >= 30 ? 'Moderate complexity' : 'Low complexity';
+  const color = score >= 60 ? '#f87171' : score >= 30 ? '#fbbf24' : '#4ade80';
+  const bg = score >= 60 ? '#3b0000' : score >= 30 ? '#3d2c00' : '#052e16';
+
+  const drivers = [];
+  if (mustHaves >= 4) drivers.push(`${mustHaves} must-have requirements to satisfy simultaneously`);
+  if (dealbreakers >= 3) drivers.push(`${dealbreakers} dealbreakers that could eliminate vendors late in evaluation`);
+  if (teamSize > 10) drivers.push(`${teamSize}-person team means more stakeholders need to agree`);
+  if (isStrictBudget) drivers.push('Month-to-month preference limits negotiating leverage on annual deals');
+  if (drivers.length === 0) drivers.push('Straightforward requirements with few competing constraints');
+
+  return `<div class="card" style="display:flex;gap:20px;align-items:flex-start">
+    <div style="flex-shrink:0;text-align:center">
+      <div style="width:64px;height:64px;border-radius:50%;background:${bg};border:2px solid ${color};display:flex;align-items:center;justify-content:center;margin-bottom:6px">
+        <span style="font-size:22px">${level === 'red' ? '🔴' : level === 'amber' ? '🟡' : '🟢'}</span>
+      </div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${color}">${label}</div>
+    </div>
+    <div style="flex:1">
+      <div class="section-title" style="margin-bottom:8px">Decision complexity</div>
+      <div style="font-size:12px;color:#98989F;margin-bottom:10px;line-height:1.5">86% of B2B purchases stall — here's what's making this one hard.</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${drivers.map(d => `<div style="font-size:12px;color:#ccc;display:flex;gap:8px;align-items:flex-start"><span style="color:${color};flex-shrink:0">•</span>${d}</div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildIntegrationFit(SESSION) {
+  const stack = SESSION.profile.current_stack || [];
+  if (!stack.length) return '';
+
+  const vendors = SESSION.vendors;
+
+  const rows = vendors.map(v => {
+    const strengthText = (v.strengths || []).join(' ').toLowerCase();
+    const nameText = v.name.toLowerCase();
+    const matches = stack.filter(tool =>
+      strengthText.includes(tool.toLowerCase()) || nameText.includes(tool.toLowerCase())
+    );
+    const score = matches.length === stack.length ? 'high' :
+                  matches.length > 0 ? 'partial' : 'unknown';
+    const scoreColor = score === 'high' ? '#4ade80' : score === 'partial' ? '#fbbf24' : '#98989F';
+    const scoreLabel = score === 'high' ? 'Strong fit' : score === 'partial' ? 'Partial fit' : 'Unconfirmed';
+    const matchText = matches.length > 0
+      ? `Native integration confirmed with: ${matches.join(', ')}`
+      : 'No integration evidence found in search results — verify manually';
+
+    return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #3A3A3C">
+      <div>
+        <span style="font-size:13px;font-weight:600;color:#fff">${v.name}</span>
+        <div style="font-size:11px;color:#98989F;margin-top:3px;line-height:1.5">${matchText}</div>
+      </div>
+      <span style="font-size:11px;font-weight:700;color:${scoreColor};flex-shrink:0;margin-left:12px">${scoreLabel}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="card">
+    <div class="section-title">Integration fit — your current stack</div>
+    <div style="font-size:11px;color:#98989F;margin-bottom:12px;line-height:1.5">
+      Your current tools: <strong style="color:#fff">${stack.join(', ')}</strong>
+    </div>
+    <div style="display:flex;flex-direction:column">${rows}</div>
+  </div>`;
+}
+
 function buildFirstNinetyDays(SESSION) {
   const vendors = SESSION.vendors.filter(v => v.first_90_days);
   if (!vendors.length) return '';
@@ -545,11 +652,14 @@ function renderDashboard(SESSION) {
       ${buildHeader(SESSION)}
       ${buildVerdictBar(SESSION)}
       ${buildBiasDetector(SESSION)}
+      ${buildROIMismatch(SESSION)}
       ${buildMetricCards(SESSION, winner)}
+      ${buildDecisionComplexity(SESSION)}
       ${buildVendorComparison(SESSION)}
       ${buildSliders(SESSION)}
       ${buildRegretAndLockin(SESSION, winner)}
       ${buildSentimentAndLevers(SESSION, winner)}
+      ${buildIntegrationFit(SESSION)}
       ${buildFirstNinetyDays(SESSION)}
       ${buildFlipScenarios(SESSION)}
       ${buildExpiryWarning(SESSION)}
@@ -704,6 +814,7 @@ function toggleMenu(sessionId, el) {
 }
 
 async function deleteSession(sessionId) {
+  if (!confirm('Delete this report? This cannot be undone.')) return;
   try {
     const res = await fetch(`/api/session/${sessionId}`, { method: 'DELETE' });
     if (res.ok) {
