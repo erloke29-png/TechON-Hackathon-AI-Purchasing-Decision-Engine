@@ -1,7 +1,9 @@
 # TechON-Hackathon-AI-Purchasing-Decision-Engine
 
 An AI-powered vendor evaluation tool that turns messy procurement research
-into a clear, defensible recommendation. Built for TechON Hackathon 2026
+into a clear, defensible recommendation. Built for TechON Hackathon 2026.
+
+DISCLAIMER: PROJECT IS ENTIRELY VIBECODED
 
 ## What it does
 
@@ -50,26 +52,6 @@ uvicorn main:app --reload
 ```
 
 Open http://localhost:8000 in your browser.
-
-## Project structure
-
-purchasing-engine/
-├── main.py                    # FastAPI app — all routes
-├── requirements.txt
-├── .env                       # API key (never commit this)
-├── static/
-│   ├── chat.html              # Phase 1 — interview UI
-│   ├── dashboard.html         # Phase 2 — results dashboard
-│   ├── style.css              # Shared styles
-│   ├── chat.js                # Interview stream handler
-│   ├── dashboard.js           # Dashboard render logic
-│   └── scorer.js              # Scoring, regret score, expiry
-├── data/
-│   ├── vendors.json           # Pre-seeded vendor data
-│   ├── contradiction_rules.json
-│   └── sessions/              # Per-user decision profiles (auto-created)
-└── prompts/
-└── interviewer.txt        # Claude system prompt for Phase 1
 
 
 ## Deploying to Render
