@@ -1,7 +1,7 @@
 # TechON-Hackathon-AI-Purchasing-Decision-Engine
 
 An AI-powered vendor evaluation tool that turns messy procurement research
-into a clear, defensible recommendation. Built for [hackathon name].
+into a clear, defensible recommendation. Built for TechON Hackathon 2026
 
 ## What it does
 
